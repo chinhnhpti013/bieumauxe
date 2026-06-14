@@ -1,10 +1,9 @@
 import zipfile, re, os, openpyxl
 
 # ── 1. Đọc dữ liệu Excel ──────────────────────────────────────────────
-wb = openpyxl.load_workbook('input/thong_tin_giam_dinh_xe.xlsx')
+wb = openpyxl.load_workbook('docs/thong_tin_giam_dinh_xe_filled.xlsx')
 ws_info = wb['Thông tin']
 ws_pt   = wb['Phụ tùng']
-ws_gdv  = wb['GĐV']
 
 info = {}
 for row in ws_info.iter_rows(values_only=True):
@@ -12,10 +11,15 @@ for row in ws_info.iter_rows(values_only=True):
         key = str(row[0]).strip('{}')
         info[key] = str(row[2])
 
-gdv_map = {}
-for row in ws_gdv.iter_rows(min_row=2, values_only=True):
-    if row[0] and row[1]:
-        gdv_map[str(row[0])] = {'ten': str(row[1]), 'sdt': str(row[2]) if row[2] else ''}
+gdv_map = {
+    'CHINH05':  {'ten': 'Nguyễn Hồng Chinh',  'sdt': ''},
+    'TUYENLM':  {'ten': 'Lương Minh Tuyến',    'sdt': ''},
+    'DUYNT':    {'ten': 'Nguyễn Thế Duy',      'sdt': ''},
+    'SONTT':    {'ten': 'Trần Thanh Sơn',       'sdt': ''},
+    'VIETNT05': {'ten': 'Nguyễn Tiến Việt',    'sdt': ''},
+    'HUONGNV':  {'ten': 'Nguyễn Văn Hướng',    'sdt': ''},
+    'TUNGHX':   {'ten': 'Hoàng Xuân Tùng',     'sdt': ''},
+}
 
 ma_gdv = info.get('ma_giam_dinh_vien', '')
 if ma_gdv in gdv_map:

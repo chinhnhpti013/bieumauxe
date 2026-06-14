@@ -25,30 +25,34 @@ from datetime import datetime
 # ════════════════════════════════════════════════════════════════════════
 
 NHAP_TAY = {
-    # Ngày cấp GCN BH (DD/MM/YYYY)
-    'gcn_bh_ngay_cap': '05/11/2025',
+    # Ngày cấp GCN BH (DD/MM/YYYY) — từ GCNBH-VCX.pdf
+    'gcn_bh_ngay_cap': '25/12/2025',
 
-    # Thời hạn BH VCX ô tô (thường = gcn_bh_den_ngay trong Excel)
-    'ngay_thoi_han_bao_hiem_vcx_oto': '05/11/2026',   # DD/MM/YYYY
-    'gio_phut_thoi_han_bao_hiem_vcx_oto': '00:00',     # HH:MM
+    # Thời hạn BH VCX ô tô — từ GCNBH-VCX.pdf: đến 09:25 ngày 28/12/2026
+    'ngay_thoi_han_bao_hiem_vcx_oto': '28/12/2026',   # DD/MM/YYYY
+    'gio_phut_thoi_han_bao_hiem_vcx_oto': '09:25',     # HH:MM
 
-    # Chứng từ doanh thu thực thu lần 1
-    'ngay_chung_tu_doanh_thu_thuc_thu_lan_1':  '05',        # ngày
-    'thang_chung_tu_doanh_thu_thuc_thu_lan_1': '11',        # tháng
-    'nam_chung_tu_doanh_thu_thuc_thu_lan_1':   '2025',      # năm
-    'tien_han_thanh_toan_dong_1': '8,220,000',               # số tiền đợt 1 (đồng)
+    # Chứng từ doanh thu thực thu lần 1 — từ Phiếu XMP mục III
+    # Dòng "Doanh thu Thực Thu" đầu tiên: ngày chứng từ 11/02/2026
+    'ngay_chung_tu_doanh_thu_thuc_thu_lan_1':  '11',        # ngày
+    'thang_chung_tu_doanh_thu_thuc_thu_lan_1': '02',        # tháng
+    'nam_chung_tu_doanh_thu_thuc_thu_lan_1':   '2026',      # năm
+    'tien_han_thanh_toan_dong_1': '18,551,250',              # số tiền đợt 1
 
-    # Hạn thanh toán đợt 1
-    'ngay_han_thanh_toan_dong_1':  '05',        # ngày
-    'thang_han_thanh_toan_dong_1': '11',        # tháng
-    'nam_han_thanh_toan_dong_1':   '2025',      # năm
+    # Hạn thanh toán đợt 1 (kỳ 1) — từ Phiếu XMP: 24/01/2026
+    'ngay_han_thanh_toan_dong_1':  '24',        # ngày
+    'thang_han_thanh_toan_dong_1': '01',        # tháng
+    'nam_han_thanh_toan_dong_1':   '2026',      # năm
+
+    # Hạn nộp phí kỳ tiếp theo (kỳ 2) — từ Phiếu XMP: 24/02/2026
+    'ke_tiep_ngay_nop_phi': '24/02/2026',
 }
 
 # ════════════════════════════════════════════════════════════════════════
 
 
 # ── 1. Đọc dữ liệu chung từ Excel ───────────────────────────────────
-wb = openpyxl.load_workbook('input/thong_tin_giam_dinh_xe.xlsx')
+wb = openpyxl.load_workbook('docs/thong_tin_giam_dinh_xe_filled.xlsx')
 ws_info = wb['Thông tin']
 
 info = {}
@@ -79,6 +83,19 @@ info['ngay_thang_nam_han_thanh_toan_dong_1'] = tong_hop_ngay(
 
 # Alias placeholder có khoảng trắng bên trong ({gcn_bh_ ngay_cap})
 info['gcn_bh_ ngay_cap'] = NHAP_TAY.get('gcn_bh_ngay_cap', '')
+
+# Giờ phút bắt đầu BH VCX (từ GCN BH)
+info['gcn_bh_gio_phut'] = '09:25'
+
+# Alias: template dùng tên ngắn không có _lan_1 / _dong_1
+info['ngay_chung_tu_doanh_thu_thuc_thu']  = NHAP_TAY.get('ngay_chung_tu_doanh_thu_thuc_thu_lan_1', '')
+info['thang_chung_tu_doanh_thu_thuc_thu'] = NHAP_TAY.get('thang_chung_tu_doanh_thu_thuc_thu_lan_1', '')
+info['nam_chung_tu_doanh_thu_thuc_thu']   = NHAP_TAY.get('nam_chung_tu_doanh_thu_thuc_thu_lan_1', '')
+info['tien_han_thanh_toan'] = NHAP_TAY.get('tien_han_thanh_toan_dong_1', '')
+info['ngay_han_thanh_toan'] = NHAP_TAY.get('ngay_han_thanh_toan_dong_1', '')
+info['thang_han_thanh_toan'] = NHAP_TAY.get('thang_han_thanh_toan_dong_1', '')
+info['nam_han_thanh_toan']   = NHAP_TAY.get('nam_han_thanh_toan_dong_1', '')
+info['ngay_thang_nam_han_thanh_toan'] = tong_hop_ngay('han_thanh_toan_dong_1', NHAP_TAY)
 
 
 # ── 2. Hàm fix split-placeholder trong XML ───────────────────────────
