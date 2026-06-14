@@ -50,6 +50,9 @@ GDV_DEFAULT = [
 SCRIPT_MAP = {
     'A':   'tao_bien_ban_gd.py',
     'BFH': 'tao_3_bien_ban.py',
+    'C':   'tao_bao_cao_so_bo.py',
+    'D':   'tao_bao_lanh.py',
+    'E':   'tao_tbtn_ycbt.py',
     'G':   'tao_cv_ngan_hang.py',
     'I':   'tao_cham_dut_khoi_phuc.py',
 }
