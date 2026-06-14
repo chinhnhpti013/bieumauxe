@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Output (file sinh ra, không commit)
+output/
+
+# Input (dữ liệu cá nhân, không commit)
+input/*.jpg
+input/*.jpeg
+input/*.png
+input/*.pdf
+input/thong_tin_giam_dinh_xe.xlsx
+
+# Temp
+temp_*.xml
+*.tmp

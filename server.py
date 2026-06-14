@@ -1,0 +1,253 @@
+# -*- coding: utf-8 -*-
+"""
+PTI Giám Định - Flask Backend Server
+Chạy: python server.py
+Truy cập: http://localhost:5000
+"""
+
+from flask import Flask, request, jsonify, send_file, send_from_directory
+import os, sys, json, subprocess, shutil
+import openpyxl
+from werkzeug.utils import secure_filename
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INPUT_DIR = os.path.join(BASE_DIR, 'input')
+OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
+ASSETS_DIR = os.path.join(BASE_DIR, 'assets')
+TEMPLATE_EXCEL = os.path.join(BASE_DIR, 'docs', 'thong_tin_giam_dinh_xe.xlsx')
+INPUT_EXCEL = os.path.join(INPUT_DIR, 'thong_tin_giam_dinh_xe.xlsx')
+
+os.makedirs(INPUT_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+app = Flask(__name__, static_folder=BASE_DIR, static_url_path='')
+
+ALLOWED_IMAGE = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'}
+ALLOWED_EXCEL = {'xlsx', 'xls'}
+ALLOWED_PDF   = {'pdf'}
+
+GDV_DEFAULT = [
+    {'ma': 'CHINH05',  'ten': 'Nguyễn Hồng Chinh', 'sdt': '0903 210 598'},
+    {'ma': 'TUYENLM',  'ten': 'Lương Minh Tuyến',   'sdt': ''},
+    {'ma': 'DUYNT',    'ten': 'Nguyễn Thế Duy',     'sdt': ''},
+    {'ma': 'SONTT',    'ten': 'Trần Thanh Sơn',     'sdt': ''},
+    {'ma': 'VIETNT05', 'ten': 'Nguyễn Tiến Việt',   'sdt': ''},
+    {'ma': 'HUONGNV',  'ten': 'Nguyễn Văn Hướng',   'sdt': ''},
+    {'ma': 'TUNGHX',   'ten': 'Hoàng Xuân Tùng',    'sdt': ''},
+]
+
+SCRIPT_MAP = {
+    'A':   'tao_bien_ban_gd.py',
+    'BFH': 'tao_3_bien_ban.py',
+    'G':   'tao_cv_ngan_hang.py',
+    'I':   'tao_cham_dut_khoi_phuc.py',
+}
+
+def allowed(filename, exts):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in exts
+
+
+# ── Routes ──────────────────────────────────────────────────────────────
+
+@app.route('/')
+def index():
+    return send_from_directory(BASE_DIR, 'index.html')
+
+@app.route('/assets/<path:filename>')
+def serve_assets(filename):
+    return send_from_directory(ASSETS_DIR, filename)
+
+@app.route('/input/<filename>')
+def serve_input(filename):
+    return send_from_directory(INPUT_DIR, secure_filename(filename))
+
+
+@app.route('/api/gdv-list')
+def gdv_list():
+    """Trả về danh sách giám định viên từ Excel template (hoặc mặc định)."""
+    try:
+        wb = openpyxl.load_workbook(TEMPLATE_EXCEL)
+        ws = wb['GĐV']
+        gdv = []
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if row[0] and row[1]:
+                gdv.append({'ma': str(row[0]), 'ten': str(row[1]),
+                             'sdt': str(row[2]) if row[2] else ''})
+        return jsonify({'gdv': gdv or GDV_DEFAULT})
+    except Exception:
+        return jsonify({'gdv': GDV_DEFAULT})
+
+
+@app.route('/api/upload-excel', methods=['POST'])
+def upload_excel():
+    """Nhận file Excel, lưu vào input/, trả về dữ liệu đã đọc."""
+    if 'file' not in request.files:
+        return jsonify({'error': 'Không có file'}), 400
+    f = request.files['file']
+    if not f.filename or not allowed(f.filename, ALLOWED_EXCEL):
+        return jsonify({'error': 'Chỉ chấp nhận file .xlsx'}), 400
+
+    f.save(INPUT_EXCEL)
+
+    try:
+        wb = openpyxl.load_workbook(INPUT_EXCEL)
+        ws_info = wb['Thông tin']
+        ws_pt   = wb['Phụ tùng']
+
+        info = {}
+        for row in ws_info.iter_rows(values_only=True):
+            if row[0] and str(row[0]).startswith('{') and row[2] is not None:
+                key = str(row[0]).strip('{}')
+                val = str(row[2]) if str(row[2]) != 'None' else ''
+                info[key] = val
+
+        phu_tung = []
+        for row in ws_pt.iter_rows(min_row=2, values_only=True):
+            if row[0] and 'Phương án hợp lệ' not in str(row[0]):
+                phu_tung.append({
+                    'ten': str(row[0]),
+                    'phuong_an': str(row[1]) if row[1] else 'Thay thế có thu hồi',
+                    'sl': int(row[2]) if row[2] else 1,
+                })
+
+        gdv_list = GDV_DEFAULT
+        try:
+            ws_gdv = wb['GĐV']
+            gdv_list = []
+            for row in ws_gdv.iter_rows(min_row=2, values_only=True):
+                if row[0] and row[1]:
+                    gdv_list.append({'ma': str(row[0]), 'ten': str(row[1]),
+                                     'sdt': str(row[2]) if row[2] else ''})
+        except Exception:
+            pass
+
+        return jsonify({'ok': True, 'info': info, 'phu_tung': phu_tung, 'gdv_list': gdv_list})
+
+    except Exception as e:
+        return jsonify({'error': f'Lỗi đọc Excel: {e}'}), 500
+
+
+@app.route('/api/upload-images', methods=['POST'])
+def upload_images():
+    """Lưu ảnh và PDF vào thư mục input/."""
+    saved = []
+    for key in request.files:
+        f = request.files[key]
+        if f.filename and allowed(f.filename, ALLOWED_IMAGE | ALLOWED_PDF):
+            name = secure_filename(f.filename)
+            f.save(os.path.join(INPUT_DIR, name))
+            saved.append(name)
+    return jsonify({'ok': True, 'saved': saved})
+
+
+@app.route('/api/input-images')
+def list_input_images():
+    """Liệt kê ảnh hiện có trong input/."""
+    images = []
+    if os.path.exists(INPUT_DIR):
+        for f in sorted(os.listdir(INPUT_DIR)):
+            if f.lower().rsplit('.', 1)[-1] in ALLOWED_IMAGE:
+                images.append(f)
+    return jsonify({'images': images})
+
+
+@app.route('/api/save-excel', methods=['POST'])
+def save_excel():
+    """Ghi dữ liệu form xuống file Excel template → input/."""
+    data     = request.json or {}
+    info     = data.get('info', {})
+    phu_tung = data.get('phu_tung', [])
+
+    # Luôn bắt đầu từ template gốc
+    shutil.copy2(TEMPLATE_EXCEL, INPUT_EXCEL)
+
+    try:
+        wb = openpyxl.load_workbook(INPUT_EXCEL)
+        ws_info = wb['Thông tin']
+        ws_pt   = wb['Phụ tùng']
+
+        for row in ws_info.iter_rows():
+            if row[0].value and str(row[0].value).startswith('{'):
+                key = str(row[0].value).strip('{}')
+                if key in info:
+                    row[2].value = info[key]
+
+        # Xóa nội dung cũ rồi ghi mới
+        for row in ws_pt.iter_rows(min_row=2):
+            for cell in row:
+                cell.value = None
+
+        for i, pt in enumerate(phu_tung):
+            ws_pt.cell(i + 2, 1, pt.get('ten', ''))
+            ws_pt.cell(i + 2, 2, pt.get('phuong_an', 'Thay thế có thu hồi'))
+            ws_pt.cell(i + 2, 3, int(pt.get('sl', 1)))
+
+        wb.save(INPUT_EXCEL)
+        return jsonify({'ok': True})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/generate', methods=['POST'])
+def generate():
+    """Chạy script sinh công văn theo danh sách được chọn."""
+    data = request.json or {}
+    docs = data.get('documents', [])  # ['A', 'BFH', 'G', 'I']
+
+    results = []
+    errors  = []
+
+    for doc in docs:
+        script_name = SCRIPT_MAP.get(doc)
+        if not script_name:
+            errors.append(f'Không có script cho mẫu {doc}')
+            continue
+        script_path = os.path.join(BASE_DIR, script_name)
+        if not os.path.exists(script_path):
+            errors.append(f'Script {script_name} không tìm thấy')
+            continue
+
+        result = subprocess.run(
+            [sys.executable, script_path],
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            errors='replace',
+            cwd=BASE_DIR,
+        )
+
+        if result.returncode == 0:
+            results.append(doc)
+        else:
+            err_msg = (result.stderr or result.stdout or '').strip()
+            errors.append(f'{doc}: {err_msg[:300]}')
+
+    # Liệt kê file output
+    files = _list_output()
+    return jsonify({'ok': True, 'generated': results, 'errors': errors, 'files': files})
+
+
+@app.route('/api/output-files')
+def list_output_files():
+    return jsonify({'files': _list_output()})
+
+
+def _list_output():
+    if not os.path.exists(OUTPUT_DIR):
+        return []
+    return sorted(f for f in os.listdir(OUTPUT_DIR) if f.endswith('.docx'))
+
+
+@app.route('/api/download/<filename>')
+def download_file(filename):
+    safe = secure_filename(filename)
+    return send_from_directory(OUTPUT_DIR, safe, as_attachment=True)
+
+
+if __name__ == '__main__':
+    print('=' * 55)
+    print('  PTI Giám Định - Hệ thống lập hồ sơ xe cơ giới')
+    print('  http://localhost:5000')
+    print('=' * 55)
+    app.run(debug=True, port=5000, use_reloader=False)

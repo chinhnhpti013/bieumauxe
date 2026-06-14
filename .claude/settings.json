@@ -1,0 +1,31 @@
+{
+  "projectName": "Mẫu Biểu Giám Định PTI — Xe Cơ Giới",
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(pip3:*)",
+      "Read(docs/*)",
+      "Read(input/*)",
+      "Read(assets/*)",
+      "Write(output/*)",
+      "Write(input/*)"
+    ]
+  },
+  "env": {
+    "PYTHONIOENCODING": "utf-8",
+    "PYTHONUTF8": "1"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo [PTI] Chạy lệnh: $CLAUDE_TOOL_INPUT"
+          }
+        ]
+      }
+    ]
+  }
+}

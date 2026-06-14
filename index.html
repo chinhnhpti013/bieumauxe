@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PTI — Lập Hồ sơ Giám định Xe Cơ giới</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0d1b4b;--navy-mid:#1a237e;--blue:#283593;--blue-lt:#3949ab;
+  --gold:#c8a84b;--gold-lt:#e8c96d;--gold-dim:#8b6f2e;
+  --bg:#eef0f8;--surface:#fff;--surf2:#f4f5fb;
+  --border:#d5d9ee;--border2:#c2c8e8;
+  --text:#1a1f3e;--muted:#6b7299;--muted2:#9099c0;
+  --ok:#059669;--err:#dc2626;--warn:#d97706;
+  --sh:0 2px 8px rgba(13,27,75,.08);--sh2:0 6px 20px rgba(13,27,75,.12);--sh3:0 12px 40px rgba(13,27,75,.16);
+  --r:10px;--r2:6px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+
+/* ── HEADER ── */
+.hdr{background:var(--navy);height:62px;padding:0 36px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 16px rgba(0,0,0,.25)}
+.hdr::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold-dim),var(--gold),var(--gold-lt),var(--gold),var(--gold-dim))}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-mark{width:38px;height:38px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.brand-mark img{width:30px;height:30px;object-fit:contain}
+.brand-mark-text{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--navy);letter-spacing:-.5px}
+.brand-info{}
+.brand-name{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#fff;letter-spacing:.01em;line-height:1.2}
+.brand-sub{font-size:10.5px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.1em;margin-top:1px}
+.hdr-date{font-size:12px;color:rgba(255,255,255,.4);letter-spacing:.04em}
+
+/* ── STEPPER ── */
+.stepper-wrap{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:62px;z-index:199;padding:0 36px}
+.stepper{max-width:820px;margin:0 auto;display:flex}
+.stp{flex:1;display:flex;align-items:center;gap:10px;padding:15px 0;cursor:pointer;position:relative;transition:opacity .2s}
+.stp:not(:last-child)::after{content:'';position:absolute;left:calc(50% + 28px);right:0;top:50%;height:1px;background:var(--border);z-index:0}
+.stp-n{width:30px;height:30px;border-radius:50%;background:var(--bg);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);transition:all .25s;flex-shrink:0;position:relative;z-index:1}
+.stp.active .stp-n{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 0 0 4px rgba(40,53,147,.15)}
+.stp.done .stp-n{background:var(--ok);border-color:var(--ok);color:#fff}
+.stp-txt{}
+.stp-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;line-height:1}
+.stp-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.3;margin-top:2px}
+.stp.active .stp-name{color:var(--blue)}
+.stp.done .stp-name{color:var(--ok)}
+
+/* ── MAIN ── */
+.main{max-width:960px;margin:0 auto;padding:28px 20px 60px}
+.panel{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh2);overflow:hidden;display:none;animation:fadeUp .25s ease}
+.panel.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.ph{background:var(--surf2);padding:18px 26px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px}
+.ph-icon{width:40px;height:40px;background:var(--navy);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.ph-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700}
+.ph-desc{font-size:12.5px;color:var(--muted);margin-top:1px}
+.pb{padding:26px}
+
+/* ── UPLOAD ── */
+.up-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}
+.up-zone{border:2px dashed var(--border2);border-radius:var(--r);padding:30px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surf2);position:relative;overflow:hidden}
+.up-zone:hover,.up-zone.over{border-color:var(--blue);background:#eef1fc}
+.up-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.up-ico{font-size:30px;display:block;margin-bottom:10px;line-height:1}
+.up-title{font-weight:600;font-size:14px;margin-bottom:4px}
+.up-hint{font-size:11.5px;color:var(--muted)}
+.up-status{margin-top:10px;font-size:12px;font-weight:600}
+.up-status.ok{color:var(--ok)}
+.up-status.err{color:var(--err)}
+
+.gallery-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.gthumb{border-radius:var(--r2);overflow:hidden;border:2px solid var(--border);aspect-ratio:4/3;position:relative;cursor:pointer;background:var(--surf2)}
+.gthumb img{width:100%;height:100%;object-fit:cover;transition:transform .2s}
+.gthumb:hover img{transform:scale(1.06)}
+.gthumb-lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(13,27,75,.72);color:#fff;font-size:10px;padding:3px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── FORM TABS ── */
+.ftabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:22px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
+.ftabs::-webkit-scrollbar{display:none}
+.ftab{padding:9px 15px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s;display:flex;align-items:center;gap:6px}
+.ftab:hover{color:var(--text)}
+.ftab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+.ftab-ico{font-size:14px}
+.fpanel{display:none}
+.fpanel.active{display:block}
+
+/* ── FIELD GRID ── */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fg3{grid-template-columns:1fr 1fr 1fr}
+.fg1{grid-template-columns:1fr}
+.f{display:flex;flex-direction:column;gap:5px}
+.f.sp2{grid-column:span 2}
+.f.sp3{grid-column:span 3}
+.f label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.f input,.f select,.f textarea{border:1.5px solid var(--border);border-radius:var(--r2);padding:8px 11px;font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--text);background:var(--surface);transition:border-color .15s,box-shadow .15s;width:100%}
+.f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(40,53,147,.09)}
+.f input[readonly]{background:var(--surf2);color:var(--muted)}
+.f textarea{min-height:76px;resize:vertical}
+
+/* ── PHỤ TÙNG TABLE ── */
+.pt-wrap{overflow-x:auto}
+.pt-table{width:100%;border-collapse:collapse;min-width:560px}
+.pt-table th{background:var(--navy);color:#fff;padding:9px 12px;text-align:left;font-size:11.5px;font-weight:600;letter-spacing:.04em;white-space:nowrap}
+.pt-table th:first-child{border-radius:6px 0 0 0}
+.pt-table th:last-child{border-radius:0 6px 0 0;width:40px;text-align:center}
+.pt-table td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.pt-table tbody tr:hover td{background:var(--surf2)}
+.pt-table td input,.pt-table td select{border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-size:13px;font-family:'DM Sans',sans-serif;width:100%;background:#fff}
+.pt-table td input:focus,.pt-table td select:focus{outline:none;border-color:var(--blue)}
+.btn-rm{background:none;border:none;color:var(--err);cursor:pointer;padding:4px 8px;border-radius:4px;font-size:16px;transition:background .15s;line-height:1}
+.btn-rm:hover{background:#fee2e2}
+.btn-add-row{margin-top:10px;display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border:1.5px dashed var(--border2);border-radius:var(--r2);background:none;color:var(--muted);cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;transition:all .15s}
+.btn-add-row:hover{border-color:var(--blue);color:var(--blue);background:#f0f3ff}
+
+/* ── DOCUMENT CARDS ── */
+.doc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
+.dc{border:2px solid var(--border);border-radius:var(--r);padding:15px;cursor:pointer;transition:all .18s;position:relative;background:var(--surface);user-select:none}
+.dc:hover:not(.na){border-color:var(--blue-lt);background:var(--surf2)}
+.dc.sel{border-color:var(--blue);background:#edf0fc}
+.dc.na{opacity:.45;cursor:not-allowed}
+.dc-chk{position:absolute;top:11px;right:11px;width:20px;height:20px;border:2px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .15s}
+.dc.sel .dc-chk{background:var(--blue);border-color:var(--blue);color:#fff}
+.dc-ico{font-size:22px;margin-bottom:7px;display:block;line-height:1}
+.dc-code{font-size:10.5px;font-weight:700;color:var(--gold-dim);letter-spacing:.12em;text-transform:uppercase}
+.dc-name{font-size:13px;font-weight:600;line-height:1.3;margin-top:2px}
+.dc-badge{margin-top:6px;display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:20px;font-size:10.5px;font-weight:600}
+.badge-ok{background:#d1fae5;color:var(--ok)}
+.badge-na{background:var(--bg);color:var(--muted)}
+.badge-sel{background:#dbeafe;color:#1d4ed8}
+
+/* ── GENERATE AREA ── */
+.gen-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0 0}
+.gen-hint{font-size:13px;color:var(--muted)}
+.gen-hint strong{color:var(--text)}
+.out-list{margin-top:18px;display:flex;flex-direction:column;gap:8px}
+.out-file{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border:1.5px solid var(--border);border-radius:var(--r2);background:var(--surface);transition:all .15s}
+.out-file:hover{border-color:var(--blue);background:var(--bg)}
+.out-file-l{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500}
+.out-file-ico{font-size:20px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:var(--r2);font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;border:none;transition:all .15s;line-height:1}
+.btn-navy{background:var(--navy);color:#fff}
+.btn-navy:hover{background:var(--navy-mid)}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:var(--blue-lt)}
+.btn-gold{background:var(--gold);color:var(--navy)}
+.btn-gold:hover{background:var(--gold-lt)}
+.btn-out{background:none;border:1.5px solid var(--border);color:var(--text)}
+.btn-out:hover{border-color:var(--blue);color:var(--blue)}
+.btn-lg{padding:12px 28px;font-size:15px;border-radius:var(--r)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn .spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp .65s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ── ACTION BAR ── */
+.abar{display:flex;align-items:center;justify-content:space-between;padding:16px 26px;border-top:1px solid var(--border);background:var(--surf2)}
+
+/* ── ALERT ── */
+.alert{padding:11px 15px;border-radius:var(--r2);font-size:13px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px}
+.alert-i{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+.alert-ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+.alert-w{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.alert-e{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+
+/* ── LIGHTBOX ── */
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:999;display:none;align-items:center;justify-content:center}
+.lb.open{display:flex}
+.lb img{max-width:90vw;max-height:90vh;border-radius:var(--r);box-shadow:var(--sh3)}
+.lb-close{position:absolute;top:18px;right:22px;color:#fff;font-size:34px;cursor:pointer;background:none;border:none;line-height:1;opacity:.7;transition:opacity .15s}
+.lb-close:hover{opacity:1}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:22px;right:22px;padding:11px 18px;border-radius:var(--r2);background:var(--navy);color:#fff;font-size:13px;font-weight:500;box-shadow:var(--sh3);z-index:1001;transform:translateY(70px);opacity:0;transition:all .3s;max-width:340px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.tok{background:var(--ok)}
+.toast.terr{background:var(--err)}
+
+/* ── DIVIDER ── */
+.hr{height:1px;background:var(--border);margin:18px 0}
+
+/* ── MISC ── */
+.clabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.err-block{background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r2);padding:12px 15px;font-size:12.5px;color:#991b1b;margin-top:12px}
+.err-block ul{margin-left:18px}
+
+@media(max-width:640px){
+  .up-grid{grid-template-columns:1fr}
+  .fg{grid-template-columns:1fr}
+  .f.sp2,.f.sp3{grid-column:span 1}
+  .doc-grid{grid-template-columns:1fr 1fr}
+  .hdr{padding:0 16px}
+  .stepper-wrap{padding:0 16px}
+  .main{padding:18px 12px 50px}
+  .pb{padding:18px}
+  .abar{flex-direction:column;gap:10px;align-items:stretch}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="brand">
+    <div class="brand-mark">
+      <span class="brand-mark-text">PTI</span>
+    </div>
+    <div class="brand-info">
+      <div class="brand-name">PTI — Giám Định Xe Cơ Giới</div>
+      <div class="brand-sub">Phòng Giám định &amp; Cứu hộ Quảng Ninh</div>
+    </div>
+  </div>
+  <div class="hdr-date" id="hdrDate"></div>
+</header>
+
+<!-- STEPPER -->
+<div class="stepper-wrap">
+  <div class="stepper">
+    <div class="stp active" id="stp1" onclick="goStep(1)">
+      <div class="stp-n" id="sn1">1</div>
+      <div class="stp-txt">
+        <div class="stp-label">Bước 1</div>
+        <div class="stp-name">Tải dữ liệu lên</div>
+      </div>
+    </div>
+    <div class="stp" id="stp2" onclick="goStep(2)">
+      <div class="stp-n" id="sn2">2</div>
+      <div class="stp-txt">
+        <div class="stp-label">Bước 2</div>
+        <div class="stp-name">Kiểm tra &amp; chỉnh sửa</div>
+      </div>
+    </div>
+    <div class="stp" id="stp3" onclick="goStep(3)">
+      <div class="stp-n" id="sn3">3</div>
+      <div class="stp-txt">
+        <div class="stp-label">Bước 3</div>
+        <div class="stp-name">Tạo công văn</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- ── STEP 1: UPLOAD ── -->
+  <div class="panel active" id="panel1">
+    <div class="ph">
+      <div class="ph-icon">📂</div>
+      <div>
+        <div class="ph-title">Tải dữ liệu lên hệ thống</div>
+        <div class="ph-desc">Upload file Excel thông tin đầy đủ <strong>hoặc</strong> ảnh màn hình / tài liệu để tham chiếu khi nhập liệu</div>
+      </div>
+    </div>
+    <div class="pb">
+      <div class="up-grid">
+        <!-- Excel upload -->
+        <div class="up-zone" id="excelZone">
+          <input type="file" accept=".xlsx,.xls" id="excelInput" onchange="handleExcelUpload(this)">
+          <span class="up-ico">📊</span>
+          <div class="up-title">File Excel thông tin</div>
+          <div class="up-hint">thong_tin_giam_dinh_xe.xlsx<br>Kéo thả hoặc nhấp để chọn</div>
+          <div class="up-status" id="excelStatus"></div>
+        </div>
+        <!-- Image upload -->
+        <div class="up-zone" id="imgZone">
+          <input type="file" accept="image/*,.pdf" multiple id="imgInput" onchange="handleImageUpload(this)">
+          <span class="up-ico">🖼️</span>
+          <div class="up-title">Ảnh &amp; tài liệu tham chiếu</div>
+          <div class="up-hint">CMND, GPLX, màn hình PTI, báo giá…<br>Hỗ trợ JPG, PNG, PDF</div>
+          <div class="up-status" id="imgStatus"></div>
+        </div>
+      </div>
+
+      <!-- Drag & drop events for zones -->
+
+      <div id="gallerySection" style="display:none">
+        <div class="gallery-head">Ảnh đã tải lên</div>
+        <div class="gallery" id="gallery"></div>
+      </div>
+
+      <div class="hr"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-blue btn-lg" onclick="goStep(2)">Tiếp tục nhập liệu →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: FORM ── -->
+  <div class="panel" id="panel2">
+    <div class="ph">
+      <div class="ph-icon">📝</div>
+      <div>
+        <div class="ph-title">Kiểm tra &amp; chỉnh sửa dữ liệu</div>
+        <div class="ph-desc">Xem lại thông tin trích xuất từ Excel, chỉnh sửa nếu cần, nhập thêm phụ tùng</div>
+      </div>
+    </div>
+    <div class="pb">
+      <div class="ftabs" id="formTabs">
+        <button class="ftab active" onclick="switchTab(0)"><span class="ftab-ico">🚗</span>Xe</button>
+        <button class="ftab" onclick="switchTab(1)"><span class="ftab-ico">📋</span>Giấy tờ</button>
+        <button class="ftab" onclick="switchTab(2)"><span class="ftab-ico">👤</span>Chủ / Lái xe</button>
+        <button class="ftab" onclick="switchTab(3)"><span class="ftab-ico">🛡️</span>Hợp đồng BH</button>
+        <button class="ftab" onclick="switchTab(4)"><span class="ftab-ico">📁</span>Hồ sơ</button>
+        <button class="ftab" onclick="switchTab(5)"><span class="ftab-ico">⚠️</span>Tai nạn</button>
+        <button class="ftab" onclick="switchTab(6)"><span class="ftab-ico">💰</span>Tài chính &amp; Gara</button>
+        <button class="ftab" onclick="switchTab(7)"><span class="ftab-ico">🔧</span>Phụ tùng</button>
+      </div>
+
+      <!-- Tab 0: Xe -->
+      <div class="fpanel active" id="fp0">
+        <div class="fg fg3">
+          <div class="f"><label>Biển số xe</label><input type="text" id="f_bien_so_xe" placeholder="14A-000.00"></div>
+          <div class="f"><label>Hãng xe</label><input type="text" id="f_hang_xe" placeholder="Toyota"></div>
+          <div class="f"><label>Dòng xe</label><input type="text" id="f_dong_xe" placeholder="Vios"></div>
+          <div class="f"><label>Phiên bản</label><input type="text" id="f_phien_ban" placeholder="1.5G CVT"></div>
+          <div class="f"><label>Năm sản xuất</label><input type="text" id="f_nam_sx" placeholder="2022"></div>
+          <div class="f"><label>Số loại</label><input type="text" id="f_so_loai"></div>
+          <div class="f"><label>Số khung</label><input type="text" id="f_so_khung"></div>
+          <div class="f"><label>Số máy</label><input type="text" id="f_so_may"></div>
+          <div class="f"><label>Trọng tải (kg)</label><input type="text" id="f_trong_tai"></div>
+          <div class="f"><label>Số chỗ ngồi</label><input type="text" id="f_so_cho_ngoi" placeholder="5"></div>
+        </div>
+      </div>
+
+      <!-- Tab 1: Giấy tờ -->
+      <div class="fpanel" id="fp1">
+        <div class="fg fg3">
+          <div class="f"><label>Đăng kiểm số</label><input type="text" id="f_giay_phep_luu_hanh"></div>
+          <div class="f"><label>Đăng kiểm từ ngày</label><input type="text" id="f_gplh_tu_ngay" placeholder="DD/MM/YYYY"></div>
+          <div class="f"><label>Đăng kiểm đến ngày</label><input type="text" id="f_gplh_den_ngay" placeholder="DD/MM/YYYY"></div>
+          <div class="f"><label>GPLX số</label><input type="text" id="f_giay_phep_lai_xe"></div>
+          <div class="f"><label>Hạng GPLX</label><input type="text" id="f_hang_gplx" placeholder="B2"></div>
+          <div class="f"><label></label></div>
+          <div class="f"><label>GPLX từ ngày</label><input type="text" id="f_gplx_tu_ngay" placeholder="DD/MM/YYYY"></div>
+          <div class="f"><label>GPLX đến ngày</label><input type="text" id="f_gplx_den_ngay" placeholder="DD/MM/YYYY"></div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Chủ / Lái xe -->
+      <div class="fpanel" id="fp2">
+        <div style="margin-bottom:14px">
+          <div class="clabel" style="margin-bottom:6px">Chủ xe</div>
+          <div class="fg">
+            <div class="f"><label>Họ tên chủ xe</label><input type="text" id="f_chu_xe"></div>
+            <div class="f"><label>SĐT chủ xe</label><input type="text" id="f_dien_thoai_chu_xe"></div>
+            <div class="f sp2"><label>Địa chỉ chủ xe</label><input type="text" id="f_dia_chi_chu_xe"></div>
+          </div>
+        </div>
+        <div class="hr"></div>
+        <div>
+          <div class="clabel" style="margin-bottom:6px">Lái xe</div>
+          <div class="fg">
+            <div class="f"><label>Họ tên lái xe</label><input type="text" id="f_lai_xe"></div>
+            <div class="f"><label>SĐT lái xe</label><input type="text" id="f_dien_thoai_lai_xe"></div>
+            <div class="f sp2"><label>Địa chỉ lái xe</label><input type="text" id="f_dia_chi_lai_xe"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Hợp đồng BH -->
+      <div class="fpanel" id="fp3">
+        <div class="fg">
+          <div class="f"><label>Số hợp đồng BH</label><input type="text" id="f_so_hop_dong"></div>
+          <div class="f"><label>Số GCN BH</label><input type="text" id="f_so_gcn_bh"></div>
+          <div class="f"><label>GCN BH từ ngày</label><input type="text" id="f_gcn_bh_tu_ngay" placeholder="DD/MM/YYYY"></div>
+          <div class="f"><label>GCN BH đến ngày</label><input type="text" id="f_gcn_bh_den_ngay" placeholder="DD/MM/YYYY"></div>
+          <div class="f"><label>Giá trị xe (đồng)</label><input type="text" id="f_gia_tri_xe" placeholder="500,000,000"></div>
+          <div class="f"><label>Phí BH (đồng)</label><input type="text" id="f_phi_bh"></div>
+          <div class="f sp2"><label>Điều kiện bổ sung</label><input type="text" id="f_dk_bs"></div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Hồ sơ -->
+      <div class="fpanel" id="fp4">
+        <div class="fg">
+          <div class="f"><label>Số hồ sơ</label><input type="text" id="f_so_ho_so"></div>
+          <div class="f">
+            <label>Giám định viên</label>
+            <select id="f_ma_giam_dinh_vien">
+              <option value="">— Chọn GĐV —</option>
+            </select>
+          </div>
+          <div class="f sp2"><label>Đơn vị quản lý</label><input type="text" id="f_don_vi_quan_ly" value="Phòng Giám định và Cứu hộ Quảng Ninh"></div>
+          <div class="f"><label>Ngày giám định</label><input type="text" id="f_ngay_giam_dinh" placeholder="DD/MM/YYYY"></div>
+          <div class="f"><label>Ngày vào gara</label><input type="text" id="f_ngay_vao_gara" placeholder="DD/MM/YYYY"></div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Tai nạn -->
+      <div class="fpanel" id="fp5">
+        <div class="fg">
+          <div class="f"><label>Ngày tai nạn</label><input type="text" id="f_ngay_tai_nan" placeholder="DD/MM/YYYY"></div>
+          <div class="f"><label>Khoảng giờ tai nạn</label><input type="text" id="f_khoang_gio_tai_nan" placeholder="Khoảng 08h00"></div>
+          <div class="f sp2"><label>Địa điểm tai nạn</label><input type="text" id="f_dia_diem_tai_nan"></div>
+          <div class="f sp2"><label>Diễn biến tai nạn</label><textarea id="f_dien_bien_tai_nan"></textarea></div>
+          <div class="f sp2"><label>Nguyên nhân tai nạn</label><textarea id="f_nguyen_nhan_tai_nan"></textarea></div>
+        </div>
+      </div>
+
+      <!-- Tab 6: Tài chính & Gara -->
+      <div class="fpanel" id="fp6">
+        <div class="fg">
+          <div class="f"><label>Tiền thanh toán (đồng)</label><input type="text" id="f_tien_tt" placeholder="10,000,000"></div>
+        </div>
+        <div class="hr"></div>
+        <div class="clabel" style="margin-bottom:8px">Thông tin Gara</div>
+        <div class="fg">
+          <div class="f sp2"><label>Tên gara</label><input type="text" id="f_ten_gara"></div>
+          <div class="f"><label>Số tài khoản</label><input type="text" id="f_so_tk"></div>
+          <div class="f"><label>Tên ngân hàng</label><input type="text" id="f_ten_ngan_hang"></div>
+          <div class="f sp2"><label>Địa chỉ ngân hàng</label><input type="text" id="f_dia_chi_ngan_hang"></div>
+        </div>
+      </div>
+
+      <!-- Tab 7: Phụ tùng -->
+      <div class="fpanel" id="fp7">
+        <div class="pt-wrap">
+          <table class="pt-table">
+            <thead>
+              <tr>
+                <th style="width:40px">#</th>
+                <th>Tên phụ tùng / hạng mục</th>
+                <th style="width:200px">Phương án</th>
+                <th style="width:70px">SL</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="ptBody"></tbody>
+          </table>
+        </div>
+        <button class="btn-add-row" onclick="addPtRow()">＋ Thêm hạng mục</button>
+      </div>
+
+    </div><!-- /pb -->
+    <div class="abar">
+      <button class="btn btn-out" onclick="goStep(1)">← Quay lại</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-navy" onclick="saveExcel()">💾 Lưu dữ liệu</button>
+        <button class="btn btn-blue btn-lg" onclick="saveAndNext()">Tiếp tục tạo công văn →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: GENERATE ── -->
+  <div class="panel" id="panel3">
+    <div class="ph">
+      <div class="ph-icon">📄</div>
+      <div>
+        <div class="ph-title">Tạo công văn &amp; biên bản</div>
+        <div class="ph-desc">Chọn các mẫu cần xuất, nhấn <strong>Tạo công văn</strong> để sinh file .docx</div>
+      </div>
+    </div>
+    <div class="pb">
+      <div class="clabel" style="margin-bottom:12px">Chọn mẫu biên bản cần tạo</div>
+      <div class="doc-grid">
+        <div class="dc sel" data-doc="A" onclick="toggleDoc(this)">
+          <div class="dc-chk">✓</div>
+          <span class="dc-ico">📋</span>
+          <div class="dc-code">Mẫu A</div>
+          <div class="dc-name">Biên bản giám định</div>
+          <span class="dc-badge badge-ok">✓ Có script</span>
+        </div>
+        <div class="dc sel" data-doc="BFH" onclick="toggleDoc(this)">
+          <div class="dc-chk">✓</div>
+          <span class="dc-ico">📦</span>
+          <div class="dc-code">Mẫu B + F + H</div>
+          <div class="dc-name">Vật tư thu hồi · Xác nhận BT · Nghiệm thu</div>
+          <span class="dc-badge badge-ok">✓ Có script</span>
+        </div>
+        <div class="dc" data-doc="C" onclick="toggleDoc(this)" style="pointer-events:none;opacity:.4">
+          <div class="dc-chk"></div>
+          <span class="dc-ico">📊</span>
+          <div class="dc-code">Mẫu C</div>
+          <div class="dc-name">Báo cáo sơ bộ giám định</div>
+          <span class="dc-badge badge-na">⏳ Sắp có</span>
+        </div>
+        <div class="dc" data-doc="D" onclick="toggleDoc(this)" style="pointer-events:none;opacity:.4">
+          <div class="dc-chk"></div>
+          <span class="dc-ico">🤝</span>
+          <div class="dc-code">Mẫu D</div>
+          <div class="dc-name">Bảo lãnh</div>
+          <span class="dc-badge badge-na">⏳ Sắp có</span>
+        </div>
+        <div class="dc" data-doc="E" onclick="toggleDoc(this)" style="pointer-events:none;opacity:.4">
+          <div class="dc-chk"></div>
+          <span class="dc-ico">📬</span>
+          <div class="dc-code">Mẫu E</div>
+          <div class="dc-name">TBTN - YCBT</div>
+          <span class="dc-badge badge-na">⏳ Sắp có</span>
+        </div>
+        <div class="dc" data-doc="G" onclick="toggleDoc(this)">
+          <div class="dc-chk"></div>
+          <span class="dc-ico">🏦</span>
+          <div class="dc-code">Mẫu G</div>
+          <div class="dc-name">Công văn Ngân hàng</div>
+          <span class="dc-badge badge-ok">✓ Có script</span>
+        </div>
+        <div class="dc" data-doc="I" onclick="toggleDoc(this)">
+          <div class="dc-chk"></div>
+          <span class="dc-ico">🔄</span>
+          <div class="dc-code">Mẫu I</div>
+          <div class="dc-name">Chấm dứt - Khôi phục BH</div>
+          <span class="dc-badge badge-ok">✓ Có script</span>
+        </div>
+      </div>
+
+      <div class="gen-bar">
+        <div class="gen-hint">Đã chọn: <strong id="selCount">2</strong> mẫu</div>
+        <button class="btn btn-gold btn-lg" id="genBtn" onclick="generateDocs()">
+          <span id="genBtnText">⚡ Tạo công văn</span>
+        </button>
+      </div>
+
+      <div id="genResult" style="display:none">
+        <div class="hr"></div>
+        <div class="clabel">File đã tạo — nhấp để tải xuống</div>
+        <div class="out-list" id="outList"></div>
+      </div>
+
+      <div id="genErrors" style="display:none"></div>
+    </div>
+    <div class="abar">
+      <button class="btn btn-out" onclick="goStep(2)">← Quay lại chỉnh sửa</button>
+      <button class="btn btn-navy" onclick="refreshOutputList()">🔄 Tải lại danh sách</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- LIGHTBOX -->
+<div class="lb" id="lb" onclick="closeLb(event)">
+  <button class="lb-close" onclick="document.getElementById('lb').classList.remove('open')">×</button>
+  <img id="lbImg" src="" alt="">
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+const S = {
+  step: 1,
+  info: {},
+  phuTung: [],
+  gdvList: [],
+  images: [],
+};
+
+const FIELDS = [
+  'bien_so_xe','hang_xe','dong_xe','phien_ban','nam_sx','so_loai','so_khung','so_may','trong_tai','so_cho_ngoi',
+  'giay_phep_luu_hanh','gplh_tu_ngay','gplh_den_ngay','giay_phep_lai_xe','hang_gplx','gplx_tu_ngay','gplx_den_ngay',
+  'chu_xe','dien_thoai_chu_xe','dia_chi_chu_xe','lai_xe','dien_thoai_lai_xe','dia_chi_lai_xe',
+  'so_hop_dong','so_gcn_bh','gcn_bh_tu_ngay','gcn_bh_den_ngay','gia_tri_xe','phi_bh','dk_bs',
+  'so_ho_so','ma_giam_dinh_vien','don_vi_quan_ly','ngay_giam_dinh','ngay_vao_gara',
+  'ngay_tai_nan','khoang_gio_tai_nan','dia_diem_tai_nan','dien_bien_tai_nan','nguyen_nhan_tai_nan',
+  'tien_tt',
+  'ten_gara','so_tk','ten_ngan_hang','dia_chi_ngan_hang',
+];
+
+const PA_OPTIONS = ['Thay thế có thu hồi','Thay thế không thu hồi','Sửa chữa'];
+
+// ── Init ───────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Set date
+  const d = new Date();
+  document.getElementById('hdrDate').textContent =
+    d.toLocaleDateString('vi-VN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // Default don vi
+  setField('don_vi_quan_ly', 'Phòng Giám định và Cứu hộ Quảng Ninh');
+
+  // Load GĐV list
+  fetch('/api/gdv-list').then(r=>r.json()).then(d=>{
+    S.gdvList = d.gdv || [];
+    buildGdvSelect();
+  }).catch(()=>{});
+
+  // Load existing images
+  loadImages();
+
+  // Load existing output files
+  refreshOutputList();
+
+  // Drag & drop setup
+  setupDrop('excelZone','excelInput',handleExcelUpload);
+  setupDrop('imgZone','imgInput',handleImageUpload);
+
+  // Selected count
+  updateSelCount();
+});
+
+// ── Step navigation ────────────────────────────────────────────────────
+function goStep(n) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel'+n).classList.add('active');
+  document.querySelectorAll('.stp').forEach((s,i)=>{
+    s.classList.remove('active','done');
+    if(i+1 < n) s.classList.add('done');
+    if(i+1 === n) s.classList.add('active');
+  });
+  // Update step number circles (done = ✓)
+  for(let i=1;i<=3;i++){
+    const el=document.getElementById('sn'+i);
+    if(i < n){ el.textContent='✓'; }
+    else { el.textContent=String(i); }
+  }
+  S.step=n;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── Drag & drop ────────────────────────────────────────────────────────
+function setupDrop(zoneId, inputId, handler) {
+  const zone = document.getElementById(zoneId);
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('over');
+    const inp = document.getElementById(inputId);
+    // Simulate file input
+    const dt = e.dataTransfer;
+    if(dt.files.length) handler({files: dt.files});
+  });
+}
+
+// ── Excel upload ───────────────────────────────────────────────────────
+async function handleExcelUpload(inp) {
+  const file = inp.files ? inp.files[0] : null;
+  if(!file) return;
+  const st = document.getElementById('excelStatus');
+  st.textContent = '⏳ Đang tải…'; st.className='up-status';
+
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const r = await fetch('/api/upload-excel',{method:'POST',body:fd});
+    const d = await r.json();
+    if(d.error){ st.textContent='❌ '+d.error; st.className='up-status err'; return; }
+
+    S.info = d.info || {};
+    S.phuTung = d.phu_tung || [];
+    if(d.gdv_list && d.gdv_list.length) { S.gdvList = d.gdv_list; buildGdvSelect(); }
+
+    fillFormFromState();
+    st.textContent = '✅ Đã tải: '+file.name; st.className='up-status ok';
+    toast('Đọc Excel thành công — kiểm tra dữ liệu ở Bước 2','tok');
+  } catch(e){
+    st.textContent='❌ Lỗi kết nối server'; st.className='up-status err';
+  }
+}
+
+// ── Image upload ───────────────────────────────────────────────────────
+async function handleImageUpload(inp) {
+  const files = inp.files || inp;
+  if(!files || !files.length) return;
+  const st = document.getElementById('imgStatus');
+  st.textContent = '⏳ Đang tải '+files.length+' file…'; st.className='up-status';
+
+  const fd = new FormData();
+  for(let i=0;i<files.length;i++) fd.append('file'+i, files[i]);
+  try {
+    const r = await fetch('/api/upload-images',{method:'POST',body:fd});
+    const d = await r.json();
+    st.textContent = '✅ Đã tải '+d.saved.length+' file'; st.className='up-status ok';
+    loadImages();
+  } catch(e){
+    st.textContent='❌ Lỗi kết nối'; st.className='up-status err';
+  }
+}
+
+async function loadImages() {
+  try {
+    const r = await fetch('/api/input-images');
+    const d = await r.json();
+    S.images = d.images || [];
+    renderGallery();
+  } catch(e){}
+}
+
+function renderGallery() {
+  const sec = document.getElementById('gallerySection');
+  const gal = document.getElementById('gallery');
+  if(!S.images.length){ sec.style.display='none'; return; }
+  sec.style.display='block';
+  gal.innerHTML = S.images.map(f=>`
+    <div class="gthumb" onclick="openLb('/input/${encodeURIComponent(f)}')">
+      <img src="/input/${encodeURIComponent(f)}" loading="lazy" alt="${f}">
+      <div class="gthumb-lbl">${f}</div>
+    </div>`).join('');
+}
+
+// ── Lightbox ───────────────────────────────────────────────────────────
+function openLb(src){ document.getElementById('lbImg').src=src; document.getElementById('lb').classList.add('open'); }
+function closeLb(e){ if(e.target===document.getElementById('lb')) document.getElementById('lb').classList.remove('open'); }
+
+// ── Form helpers ───────────────────────────────────────────────────────
+function setField(key, val){
+  const el = document.getElementById('f_'+key);
+  if(!el) return;
+  el.value = val || '';
+}
+function getField(key){
+  const el = document.getElementById('f_'+key);
+  return el ? el.value : '';
+}
+
+function fillFormFromState(){
+  FIELDS.forEach(k => setField(k, S.info[k]||''));
+  renderPtTable();
+  // GĐV: store ma, map to select
+  const gdvSel = document.getElementById('f_ma_giam_dinh_vien');
+  // Try to find by code in state
+  const maGdv = S.info['ma_giam_dinh_vien'] || '';
+  if(gdvSel){
+    // Try matching option value
+    const opts = Array.from(gdvSel.options);
+    const match = opts.find(o=>o.value===maGdv || o.text.includes(maGdv));
+    if(match) gdvSel.value = match.value;
+  }
+}
+
+function collectFormToState(){
+  FIELDS.forEach(k => {
+    if(k === 'ma_giam_dinh_vien') return; // handle separately
+    S.info[k] = getField(k);
+  });
+  // GĐV: convert selected option value (ma) → store ma
+  const gdvSel = document.getElementById('f_ma_giam_dinh_vien');
+  S.info['ma_giam_dinh_vien'] = gdvSel ? gdvSel.value : '';
+
+  // Collect phụ tùng from table
+  S.phuTung = [];
+  document.querySelectorAll('#ptBody tr').forEach(tr=>{
+    const ten = tr.querySelector('.pt-ten')?.value.trim();
+    if(!ten) return;
+    S.phuTung.push({
+      ten,
+      phuong_an: tr.querySelector('.pt-pa')?.value || PA_OPTIONS[0],
+      sl: parseInt(tr.querySelector('.pt-sl')?.value)||1,
+    });
+  });
+}
+
+function buildGdvSelect(){
+  const sel = document.getElementById('f_ma_giam_dinh_vien');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Chọn GĐV —</option>';
+  S.gdvList.forEach(g=>{
+    const o = document.createElement('option');
+    o.value = g.ma;
+    o.textContent = g.ten + (g.sdt?' — '+g.sdt:'');
+    sel.appendChild(o);
+  });
+  if(cur) sel.value = cur;
+}
+
+// ── Form tabs ──────────────────────────────────────────────────────────
+function switchTab(idx){
+  document.querySelectorAll('.ftab').forEach((t,i)=>{
+    t.classList.toggle('active', i===idx);
+  });
+  document.querySelectorAll('.fpanel').forEach((p,i)=>{
+    p.classList.toggle('active', i===idx);
+  });
+}
+
+// ── Phụ tùng table ─────────────────────────────────────────────────────
+function renderPtTable(){
+  const tbody = document.getElementById('ptBody');
+  tbody.innerHTML = '';
+  if(!S.phuTung.length){
+    S.phuTung = [{ten:'',phuong_an:PA_OPTIONS[0],sl:1}];
+  }
+  S.phuTung.forEach((pt,i) => addPtRowData(i+1, pt));
+}
+
+function addPtRow(){
+  const tbody = document.getElementById('ptBody');
+  const n = tbody.querySelectorAll('tr').length + 1;
+  addPtRowData(n, {ten:'',phuong_an:PA_OPTIONS[0],sl:1});
+}
+
+function addPtRowData(n, pt){
+  const tbody = document.getElementById('ptBody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="color:var(--muted);font-size:12px;text-align:center">${n}</td>
+    <td><input type="text" class="pt-ten" value="${esc(pt.ten)}" placeholder="Tên phụ tùng / hạng mục sửa chữa"></td>
+    <td><select class="pt-pa">
+      ${PA_OPTIONS.map(p=>`<option${p===pt.phuong_an?' selected':''}>${p}</option>`).join('')}
+    </select></td>
+    <td><input type="number" class="pt-sl" value="${pt.sl||1}" min="1" style="width:55px"></td>
+    <td style="text-align:center"><button class="btn-rm" onclick="removeRow(this)" title="Xóa">×</button></td>`;
+  tbody.appendChild(tr);
+}
+
+function removeRow(btn){
+  const tr = btn.closest('tr');
+  tr.remove();
+  // Renumber
+  document.querySelectorAll('#ptBody tr').forEach((r,i)=>{
+    r.cells[0].textContent = i+1;
+  });
+}
+
+function esc(s){ return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+// ── Save Excel ─────────────────────────────────────────────────────────
+async function saveExcel(){
+  collectFormToState();
+  const btn = event.target;
+  btn.disabled=true; btn.textContent='💾 Đang lưu…';
+  try{
+    const r = await fetch('/api/save-excel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({info:S.info,phu_tung:S.phuTung})});
+    const d = await r.json();
+    if(d.ok){ toast('Đã lưu dữ liệu vào Excel','tok'); }
+    else { toast('Lỗi: '+d.error,'terr'); }
+  }catch(e){ toast('Lỗi kết nối server','terr'); }
+  btn.disabled=false; btn.textContent='💾 Lưu dữ liệu';
+}
+
+async function saveAndNext(){
+  collectFormToState();
+  const btn = event.target;
+  btn.disabled=true; btn.textContent='⏳ Đang lưu…';
+  try{
+    const r = await fetch('/api/save-excel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({info:S.info,phu_tung:S.phuTung})});
+    const d = await r.json();
+    if(d.ok){ goStep(3); toast('Dữ liệu đã lưu — chọn mẫu và tạo công văn','tok'); }
+    else { toast('Lỗi lưu Excel: '+d.error,'terr'); }
+  }catch(e){ toast('Lỗi kết nối server','terr'); }
+  btn.disabled=false; btn.textContent='Tiếp tục tạo công văn →';
+}
+
+// ── Document selection ─────────────────────────────────────────────────
+function toggleDoc(card){
+  if(card.style.pointerEvents==='none') return;
+  card.classList.toggle('sel');
+  const chk = card.querySelector('.dc-chk');
+  chk.textContent = card.classList.contains('sel') ? '✓' : '';
+  updateSelCount();
+}
+
+function updateSelCount(){
+  const n = document.querySelectorAll('.dc.sel').length;
+  document.getElementById('selCount').textContent = n;
+  document.getElementById('genBtn').disabled = n===0;
+}
+
+// ── Generate ───────────────────────────────────────────────────────────
+async function generateDocs(){
+  const docs = Array.from(document.querySelectorAll('.dc.sel')).map(c=>c.dataset.doc);
+  if(!docs.length){ toast('Chọn ít nhất một mẫu','terr'); return; }
+
+  const btn = document.getElementById('genBtn');
+  const txt = document.getElementById('genBtnText');
+  btn.disabled=true;
+  txt.innerHTML='<span class="spin"></span> Đang tạo…';
+
+  document.getElementById('genResult').style.display='none';
+  document.getElementById('genErrors').style.display='none';
+
+  try{
+    const r = await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({documents:docs})});
+    const d = await r.json();
+
+    if(d.errors && d.errors.length){
+      const errEl = document.getElementById('genErrors');
+      errEl.style.display='block';
+      errEl.innerHTML=`<div class="hr"></div><div class="err-block"><strong>⚠️ Một số lỗi xảy ra:</strong><ul>${d.errors.map(e=>`<li>${e}</li>`).join('')}</ul></div>`;
+    }
+
+    if(d.files && d.files.length){
+      renderOutputFiles(d.files);
+      toast('Tạo công văn thành công — '+d.files.length+' file','tok');
+    } else if(d.generated.length===0){
+      toast('Không có file nào được tạo','terr');
+    }
+  }catch(e){
+    toast('Lỗi kết nối server','terr');
+  }
+
+  btn.disabled=false;
+  txt.textContent='⚡ Tạo công văn';
+  updateSelCount();
+}
+
+async function refreshOutputList(){
+  try{
+    const r = await fetch('/api/output-files');
+    const d = await r.json();
+    if(d.files && d.files.length) renderOutputFiles(d.files);
+  }catch(e){}
+}
+
+function renderOutputFiles(files){
+  const el = document.getElementById('outList');
+  el.innerHTML = files.map(f=>`
+    <div class="out-file">
+      <div class="out-file-l">
+        <span class="out-file-ico">📄</span>
+        <span>${f}</span>
+      </div>
+      <a href="/api/download/${encodeURIComponent(f)}" class="btn btn-navy" download>⬇ Tải về</a>
+    </div>`).join('');
+  document.getElementById('genResult').style.display='block';
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, type=''){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show'+(type?' '+type:'');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'),3200);
+}
+</script>
+</body>
+</html>
