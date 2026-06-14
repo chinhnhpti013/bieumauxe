@@ -540,6 +540,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <div class="toast" id="toast"></div>
 
 <script>
+// Backend URL: tự động chọn Render khi chạy trên GitHub Pages
+const API_BASE = window.location.hostname.includes('github.io')
+  ? 'https://pti-giam-dinh.onrender.com'
+  : '';
+
 // ── State ──────────────────────────────────────────────────────────────
 const S = {
   step: 1,
@@ -573,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setField('don_vi_quan_ly', 'Phòng Giám định và Cứu hộ Quảng Ninh');
 
   // Load GĐV list
-  fetch('/api/gdv-list').then(r=>r.json()).then(d=>{
+  fetch(API_BASE + '/api/gdv-list').then(r=>r.json()).then(d=>{
     S.gdvList = d.gdv || [];
     buildGdvSelect();
   }).catch(()=>{});
@@ -636,7 +641,7 @@ async function handleExcelUpload(inp) {
   const fd = new FormData();
   fd.append('file', file);
   try {
-    const r = await fetch('/api/upload-excel',{method:'POST',body:fd});
+    const r = await fetch(API_BASE + '/api/upload-excel',{method:'POST',body:fd});
     const d = await r.json();
     if(d.error){ st.textContent='❌ '+d.error; st.className='up-status err'; return; }
 
@@ -662,7 +667,7 @@ async function handleImageUpload(inp) {
   const fd = new FormData();
   for(let i=0;i<files.length;i++) fd.append('file'+i, files[i]);
   try {
-    const r = await fetch('/api/upload-images',{method:'POST',body:fd});
+    const r = await fetch(API_BASE + '/api/upload-images',{method:'POST',body:fd});
     const d = await r.json();
     st.textContent = '✅ Đã tải '+d.saved.length+' file'; st.className='up-status ok';
     loadImages();
@@ -673,7 +678,7 @@ async function handleImageUpload(inp) {
 
 async function loadImages() {
   try {
-    const r = await fetch('/api/input-images');
+    const r = await fetch(API_BASE + '/api/input-images');
     const d = await r.json();
     S.images = d.images || [];
     renderGallery();
@@ -815,7 +820,7 @@ async function saveExcel(){
   const btn = event.target;
   btn.disabled=true; btn.textContent='💾 Đang lưu…';
   try{
-    const r = await fetch('/api/save-excel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({info:S.info,phu_tung:S.phuTung})});
+    const r = await fetch(API_BASE + '/api/save-excel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({info:S.info,phu_tung:S.phuTung})});
     const d = await r.json();
     if(d.ok){ toast('Đã lưu dữ liệu vào Excel','tok'); }
     else { toast('Lỗi: '+d.error,'terr'); }
@@ -828,7 +833,7 @@ async function saveAndNext(){
   const btn = event.target;
   btn.disabled=true; btn.textContent='⏳ Đang lưu…';
   try{
-    const r = await fetch('/api/save-excel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({info:S.info,phu_tung:S.phuTung})});
+    const r = await fetch(API_BASE + '/api/save-excel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({info:S.info,phu_tung:S.phuTung})});
     const d = await r.json();
     if(d.ok){ goStep(3); toast('Dữ liệu đã lưu — chọn mẫu và tạo công văn','tok'); }
     else { toast('Lỗi lưu Excel: '+d.error,'terr'); }
@@ -865,7 +870,7 @@ async function generateDocs(){
   document.getElementById('genErrors').style.display='none';
 
   try{
-    const r = await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({documents:docs})});
+    const r = await fetch(API_BASE + '/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({documents:docs})});
     const d = await r.json();
 
     if(d.errors && d.errors.length){
@@ -891,7 +896,7 @@ async function generateDocs(){
 
 async function refreshOutputList(){
   try{
-    const r = await fetch('/api/output-files');
+    const r = await fetch(API_BASE + '/api/output-files');
     const d = await r.json();
     if(d.files && d.files.length) renderOutputFiles(d.files);
   }catch(e){}
@@ -905,7 +910,7 @@ function renderOutputFiles(files){
         <span class="out-file-ico">📄</span>
         <span>${f}</span>
       </div>
-      <a href="/api/download/${encodeURIComponent(f)}" class="btn btn-navy" download>⬇ Tải về</a>
+      <a href="${API_BASE}/api/download/${encodeURIComponent(f)}" class="btn btn-navy" download>⬇ Tải về</a>
     </div>`).join('');
   document.getElementById('genResult').style.display='block';
 }

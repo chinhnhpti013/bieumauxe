@@ -52,7 +52,7 @@ NHAP_TAY = {
 
 
 # ── 1. Đọc dữ liệu chung từ Excel ───────────────────────────────────
-wb = openpyxl.load_workbook('docs/thong_tin_giam_dinh_xe_filled.xlsx')
+wb = openpyxl.load_workbook('input/thong_tin_giam_dinh_xe.xlsx')
 ws_info = wb['Thông tin']
 
 info = {}

@@ -1,7 +1,7 @@
 import zipfile, re, os, openpyxl
 
 # ── 1. Đọc dữ liệu Excel ──────────────────────────────────────────────
-wb = openpyxl.load_workbook('docs/thong_tin_giam_dinh_xe_filled.xlsx')
+wb = openpyxl.load_workbook('input/thong_tin_giam_dinh_xe.xlsx')
 ws_info = wb['Thông tin']
 ws_pt   = wb['Phụ tùng']
 

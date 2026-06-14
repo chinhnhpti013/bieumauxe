@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
-import zipfile, re, os, shutil
+import zipfile, re, os, openpyxl
 
-ASSET = r"d:\MCP\Claude Code\mau bieu giam dinh pti\assets\CV-Ngân hàng.docx"
-OUTPUT = r"d:\MCP\Claude Code\mau bieu giam dinh pti\output\CV-Ngan-hang.docx"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ASSET  = os.path.join(BASE_DIR, 'assets', 'CV-Ngân hàng.docx')
+OUTPUT = os.path.join(BASE_DIR, 'output', 'CV-Ngan-hang.docx')
 
 os.makedirs(os.path.dirname(OUTPUT), exist_ok=True)
 
+
 def so_sang_chu(so_str):
-    so = int(so_str.replace(",", "").replace(".", ""))
+    try:
+        so = int(str(so_str).replace(",", "").replace(".", "").strip())
+    except (ValueError, AttributeError):
+        return str(so_str)
     don_vi = ["", "nghìn", "triệu", "tỷ"]
     chu_so = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"]
 
@@ -69,12 +74,9 @@ def merge_split_placeholders(xml):
                         ("}" in x.group(1) and "{" not in x.group(1)) for x in ts)
         if not has_split:
             return para
-        # Gộp vào run đầu
         new_para = para
         first = ts[0]
         safe = full.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        # Khôi phục lại & đã có trong XML gốc (chỉ encode text mới)
-        # full_text đã là text thuần (đã được decode bởi regex) nên cần encode lại
         new_t = re.sub(r'(<w:t(?=[>\s])[^>]*>)(.*?)(</w:t>)',
                        lambda mm: mm.group(1) + safe + mm.group(3),
                        first.group(0), count=1, flags=re.DOTALL)
@@ -85,7 +87,6 @@ def merge_split_placeholders(xml):
                              t.group(0), count=1, flags=re.DOTALL)
             new_para = new_para.replace(t.group(0), cleared, 1)
         return new_para
-
     return re.sub(r'<w:p[ >].*?</w:p>', process_para, xml, flags=re.DOTALL)
 
 
@@ -95,35 +96,36 @@ def apply_replacements(xml, data):
     return xml
 
 
-TIEN_CHU = so_sang_chu("6432367")
+# ── Đọc dữ liệu từ Excel ─────────────────────────────────────────────
+excel_path = os.path.join(BASE_DIR, 'input', 'thong_tin_giam_dinh_xe.xlsx')
+wb = openpyxl.load_workbook(excel_path)
+ws_info = wb['Thông tin']
 
-data = {
-    "ten_ngan_hang": "Ngân hàng TMCP Việt Nam Thịnh Vượng (VPBank)",
-    "dia_chi_ngan_hang": "Số 31-33, Phạm Ngũ Lão, phường Gia Viễn, thành phố Hải Phòng",
-    "bien_so_xe": "14C-402.84",
-    "chu_xe": "CÔNG TY CỔ PHẦN ĐẦU TƯ XÂY DỰNG UÔNG BÍ",
-    "ten_chu_xe": "CÔNG TY CỔ PHẦN ĐẦU TƯ XÂY DỰNG UÔNG BÍ",
-    "dia_chi_chu_xe": "Số 513 đường Quang Trung, Phường Uông Bí, Quảng Ninh",
-    "so_khung": "RL2UMFC30RCR74868",
-    "so_gcn_bh": "25002.1.820",
-    "gcn_bh_tu_ngay": "23/07/2025",
-    "gcn_bh_den_ngay": "23/07/2026",
-    "ngay_tai_nan": "08/06/2026",
-    "lai_xe": "Đỗ Quang Thịnh",
-    "dia_diem_tai_nan": "Uông Bí, Quảng Ninh",
-    "so_tien_thiet_hai_so": "6.432.367",
-    "so_tien_thiet_hai_chu": TIEN_CHU,
-}
+info = {}
+for row in ws_info.iter_rows(values_only=True):
+    if row[0] and str(row[0]).startswith('{') and row[2] is not None:
+        key = str(row[0]).strip('{}')
+        val = str(row[2]) if str(row[2]) != 'None' else ''
+        info[key] = val
 
-print("Số tiền bằng chữ:", TIEN_CHU)
+# Alias
+info['ten_chu_xe'] = info.get('chu_xe', '')
 
+# Số tiền thiệt hại: ưu tiên tien_tt
+so_tien_so = info.get('tien_tt', '0').replace(' ', '')
+info['so_tien_thiet_hai_so'] = so_tien_so
+info['so_tien_thiet_hai_chu'] = so_sang_chu(so_tien_so)
+
+print("Số tiền bằng chữ:", info['so_tien_thiet_hai_chu'])
+
+# ── Sinh file docx ────────────────────────────────────────────────────
 with zipfile.ZipFile(ASSET, 'r') as zin:
     all_files = zin.namelist()
     file_contents = {f: zin.read(f) for f in all_files}
 
 xml = file_contents['word/document.xml'].decode('utf-8')
 xml = merge_split_placeholders(xml)
-xml = apply_replacements(xml, data)
+xml = apply_replacements(xml, info)
 
 import xml.etree.ElementTree as ET
 try:

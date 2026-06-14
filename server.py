@@ -10,6 +10,12 @@ import os, sys, json, subprocess, shutil
 import openpyxl
 from werkzeug.utils import secure_filename
 
+def _add_cors(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
+    return response
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(BASE_DIR, 'input')
 OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
@@ -21,6 +27,11 @@ os.makedirs(INPUT_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 app = Flask(__name__, static_folder=BASE_DIR, static_url_path='')
+app.after_request(_add_cors)
+
+@app.route('/api/<path:path>', methods=['OPTIONS'])
+def handle_options(path):
+    return jsonify({}), 200
 
 ALLOWED_IMAGE = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'}
 ALLOWED_EXCEL = {'xlsx', 'xls'}
@@ -246,8 +257,9 @@ def download_file(filename):
 
 
 if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
     print('=' * 55)
     print('  PTI Giám Định - Hệ thống lập hồ sơ xe cơ giới')
-    print('  http://localhost:5000')
+    print(f'  http://localhost:{port}')
     print('=' * 55)
-    app.run(debug=True, port=5000, use_reloader=False)
+    app.run(debug=False, host='0.0.0.0', port=port, use_reloader=False)
