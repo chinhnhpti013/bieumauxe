@@ -259,6 +259,33 @@ def download_file(filename):
     return send_from_directory(OUTPUT_DIR, safe, as_attachment=True)
 
 
+@app.route('/api/preview/<filename>')
+def preview_file(filename):
+    safe = secure_filename(filename)
+    path = os.path.join(OUTPUT_DIR, safe)
+    if not os.path.exists(path):
+        return jsonify({'error': 'File không tồn tại'}), 404
+    try:
+        import mammoth
+        with open(path, 'rb') as f:
+            result = mammoth.convert_to_html(f)
+        html = result.value
+        page = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body{{font-family:'Times New Roman',serif;font-size:13pt;margin:30px 40px;line-height:1.6;color:#111}}
+  table{{border-collapse:collapse;width:100%}}
+  td,th{{border:1px solid #999;padding:4px 8px}}
+  img{{max-width:100%}}
+</style></head><body>{html}</body></html>"""
+        from flask import Response
+        return Response(page, mimetype='text/html; charset=utf-8')
+    except ImportError:
+        return Response('<p style="font-family:sans-serif;padding:20px">Thư viện <b>mammoth</b> chưa được cài. Chạy: <code>pip install mammoth</code></p>', mimetype='text/html; charset=utf-8')
+    except Exception as e:
+        return Response(f'<p style="font-family:sans-serif;padding:20px;color:red">Lỗi xem trước: {e}</p>', mimetype='text/html; charset=utf-8')
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print('=' * 55)

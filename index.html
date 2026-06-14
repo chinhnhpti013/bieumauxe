@@ -139,6 +139,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .out-file:hover{border-color:var(--blue);background:var(--bg)}
 .out-file-l{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500}
 .out-file-ico{font-size:20px}
+.out-file-actions{display:flex;gap:8px}
+/* ── PREVIEW MODAL ── */
+.preview-modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.55);align-items:center;justify-content:center}
+.preview-modal.open{display:flex}
+.preview-box{background:#fff;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.3);width:90vw;max-width:900px;height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.preview-header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid #e0e0e0;background:#f8f9fb}
+.preview-title{font-size:14px;font-weight:600;color:var(--navy)}
+.preview-close{background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;padding:0 4px}
+.preview-close:hover{color:#333}
+.preview-iframe{flex:1;border:none;width:100%}
 
 /* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:var(--r2);font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;border:none;transition:all .15s;line-height:1}
@@ -539,6 +549,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- PREVIEW MODAL -->
+<div class="preview-modal" id="previewModal" onclick="closePreview(event)">
+  <div class="preview-box">
+    <div class="preview-header">
+      <span class="preview-title" id="previewTitle"></span>
+      <button class="preview-close" onclick="document.getElementById('previewModal').classList.remove('open')">✕</button>
+    </div>
+    <iframe class="preview-iframe" id="previewFrame" src="about:blank"></iframe>
+  </div>
+</div>
+
 <script>
 // Backend URL: tự động chọn Render khi chạy trên GitHub Pages
 const API_BASE = window.location.hostname.includes('github.io')
@@ -910,9 +931,23 @@ function renderOutputFiles(files){
         <span class="out-file-ico">📄</span>
         <span>${f}</span>
       </div>
-      <a href="${API_BASE}/api/download/${encodeURIComponent(f)}" class="btn btn-navy" download>⬇ Tải về</a>
+      <div class="out-file-actions">
+        <button class="btn btn-out" onclick="openPreview(${JSON.stringify(f)})">👁 Xem trước</button>
+        <a href="${API_BASE}/api/download/${encodeURIComponent(f)}" class="btn btn-navy" download>⬇ Tải về</a>
+      </div>
     </div>`).join('');
   document.getElementById('genResult').style.display='block';
+}
+
+function openPreview(filename){
+  document.getElementById('previewTitle').textContent = filename;
+  document.getElementById('previewFrame').src = API_BASE + '/api/preview/' + encodeURIComponent(filename);
+  document.getElementById('previewModal').classList.add('open');
+}
+
+function closePreview(e){
+  if(e.target === document.getElementById('previewModal'))
+    document.getElementById('previewModal').classList.remove('open');
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────
