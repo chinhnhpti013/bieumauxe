@@ -1018,8 +1018,10 @@ async function scanImages() {
       const ptCount = (Array.isArray(ptList) && ptList.length) ? ptList.length : 0;
       const ptMsg = ptCount ? ` + <strong>${ptCount} phụ tùng</strong>` : '';
       const debugJson = JSON.stringify(d.info, null, 2);
+      const filesHtml = d.files_loaded && d.files_loaded.length
+        ? `<div style="margin-top:6px;font-size:12px;color:var(--muted)">📂 File đã đọc: ${d.files_loaded.join(', ')}</div>` : '';
       res.style.display = 'block';
-      res.innerHTML = `<div class="alert alert-ok"><span>✅</span><span>Trích xuất thành công <strong>${filled} trường thông tin</strong>${ptMsg} — đã điền vào bảng dữ liệu. Kiểm tra lại ở Bước 2.</span></div>
+      res.innerHTML = `<div class="alert alert-ok"><span>✅</span><span>Trích xuất thành công <strong>${filled} trường thông tin</strong>${ptMsg} — đã điền vào bảng dữ liệu. Kiểm tra lại ở Bước 2.</span></div>${filesHtml}
         <details style="margin-top:8px;font-size:12px"><summary style="cursor:pointer;color:var(--muted)">Xem dữ liệu thô từ AI ▾</summary><pre style="background:#f4f4f4;padding:10px;border-radius:6px;overflow:auto;max-height:300px;margin-top:6px">${debugJson.replace(/</g,'&lt;')}</pre></details>`;
       toast('Quét ảnh thành công — ' + filled + ' trường' + (ptCount ? ` + ${ptCount} phụ tùng` : ''), 'tok');
     }

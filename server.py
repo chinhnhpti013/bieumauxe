@@ -341,7 +341,7 @@ Hướng dẫn đọc từng loại tài liệu:
 - "Giấy chứng nhận bảo hiểm" (GCN BH): số GCN BH ở đầu trang, thời hạn hiệu lực, phí BH, họ tên chủ xe, biển số
 - Màn hình hệ thống PTI tab "Tổn thất - Chi trả": số hồ sơ ("so_ho_so"), mã GĐV ("ma_giam_dinh_vien"), diễn biến tai nạn ("dien_bien_tai_nan"), tên gara ("ten_gara"), tiền thanh toán ("tien_tt")
 - Màn hình hệ thống PTI tab "Thông tin giám định": thông tin xe, chủ xe, lái xe, ngày giám định, ngày vào gara
-- "Giấy phép lái xe" (GPLX): mặt trước có "Họ và tên" → điền vào "lai_xe"; "Nơi cư trú" hoặc "Địa chỉ" → "dia_chi_lai_xe"; "Số GPLX" → "giay_phep_lai_xe"; "Hạng" → "hang_gplx"; "Có giá trị đến" → "gplx_den_ngay"; "Ngày cấp" → "gplx_tu_ngay"; số điện thoại lái xe thường không có trên GPLX nên để trống
+- "Giấy phép lái xe" (GPLX): mặt trước có "Họ và tên" → PHẢI điền vào "lai_xe" (dù tên trùng với chủ xe vẫn bắt buộc điền); "Nơi cư trú" hoặc "Địa chỉ" → "dia_chi_lai_xe"; "Số GPLX" → "giay_phep_lai_xe"; "Hạng" → "hang_gplx"; "Có giá trị đến" → "gplx_den_ngay"; "Ngày cấp" → "gplx_tu_ngay"; số điện thoại lái xe thường không có trên GPLX nên để trống
 - "Giấy đăng ký xe" / "Chứng nhận đăng ký xe": "Họ tên chủ xe" → "chu_xe"; "Địa chỉ" → "dia_chi_chu_xe"; "Biển số" → "bien_so_xe"; "Nhãn hiệu" → "hang_xe"; "Loại xe" → "dong_xe"; "Số khung" → "so_khung"; "Số máy" → "so_may"; "Năm sản xuất" → "nam_sx"; "Số chỗ ngồi" → "so_cho_ngoi"
 - "Giấy chứng nhận kiểm định" (đăng kiểm): "Số phiếu" → "giay_phep_luu_hanh"; "Có giá trị đến" → "gplh_den_ngay""""
 
@@ -361,6 +361,7 @@ def scan_images():
 
     # Thu thập ảnh và PDF từ input/ (tối đa 20 mục)
     image_contents = []
+    files_loaded = []
     if os.path.exists(INPUT_DIR):
         for fname in sorted(os.listdir(INPUT_DIR))[:20]:
             ext = fname.lower().rsplit('.', 1)[-1]
@@ -373,9 +374,9 @@ def scan_images():
                     'type': 'image',
                     'source': {'type': 'base64', 'media_type': mime, 'data': b64}
                 })
+                files_loaded.append(f'{fname} (ảnh)')
             elif ext == 'pdf':
                 pdf_text = ''
-                # Ưu tiên extract text bằng pdfplumber (nhanh, chính xác với PDF có text layer)
                 try:
                     import pdfplumber
                     with pdfplumber.open(fpath) as pdf:
@@ -387,8 +388,8 @@ def scan_images():
                         'type': 'text',
                         'text': f'[Nội dung file PDF: {fname}]\n{pdf_text}'
                     })
+                    files_loaded.append(f'{fname} (PDF text)')
                 else:
-                    # Fallback: render từng trang thành ảnh bằng pymupdf
                     try:
                         import fitz  # pymupdf
                         doc = fitz.open(fpath)
@@ -400,8 +401,9 @@ def scan_images():
                                 'source': {'type': 'base64', 'media_type': 'image/png', 'data': b64}
                             })
                         doc.close()
+                        files_loaded.append(f'{fname} (PDF ảnh, {doc.page_count} trang)')
                     except Exception:
-                        pass
+                        files_loaded.append(f'{fname} (PDF - lỗi đọc)')
 
     if not image_contents:
         return jsonify({'error': 'Chưa có ảnh hoặc PDF nào trong thư mục input. Hãy tải file lên trước.'}), 400
@@ -429,7 +431,7 @@ def scan_images():
     except Exception as e:
         return jsonify({'error': f'JSON không hợp lệ: {e}', 'raw': raw[:500]}), 500
 
-    return jsonify({'ok': True, 'info': info})
+    return jsonify({'ok': True, 'info': info, 'files_loaded': files_loaded})
 
 
 @app.route('/api/preview/<filename>')
