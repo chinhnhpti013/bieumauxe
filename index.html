@@ -286,12 +286,33 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
       <!-- Drag & drop events for zones -->
 
+      <!-- Clipboard paste hint -->
+      <div class="alert alert-i" id="pasteHint" style="margin-bottom:0">
+        <span>📋</span>
+        <span>Có thể <strong>dán ảnh từ clipboard</strong> (Ctrl+V) vào bất kỳ vị trí nào trên trang để tải lên nhanh</span>
+      </div>
+
       <div id="gallerySection" style="display:none">
-        <div class="gallery-head">Ảnh đã tải lên</div>
+        <div class="gallery-head" style="margin-top:14px">Ảnh đã tải lên</div>
         <div class="gallery" id="gallery"></div>
       </div>
 
       <div class="hr"></div>
+
+      <!-- Scan button area -->
+      <div style="background:var(--surf2);border:1.5px solid var(--border2);border-radius:var(--r);padding:18px 20px;margin-bottom:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:600;font-size:14px;margin-bottom:3px">🤖 Quét thông tin từ ảnh bằng AI</div>
+            <div style="font-size:12px;color:var(--muted)">Claude Vision sẽ đọc tất cả ảnh đã tải lên và điền tự động vào bảng dữ liệu</div>
+          </div>
+          <button class="btn btn-navy btn-lg" id="scanBtn" onclick="scanImages()">
+            <span id="scanBtnText">🔍 Quét thông tin</span>
+          </button>
+        </div>
+        <div id="scanResult" style="display:none;margin-top:12px"></div>
+      </div>
+
       <div style="display:flex;gap:10px;justify-content:flex-end">
         <button class="btn btn-blue btn-lg" onclick="goStep(2)">Tiếp tục nhập liệu →</button>
       </div>
@@ -949,6 +970,83 @@ function closePreview(e){
   if(e.target === document.getElementById('previewModal'))
     document.getElementById('previewModal').classList.remove('open');
 }
+
+// ── Scan images ────────────────────────────────────────────────────────
+async function scanImages() {
+  const btn = document.getElementById('scanBtn');
+  const txt = document.getElementById('scanBtnText');
+  const res = document.getElementById('scanResult');
+
+  btn.disabled = true;
+  txt.innerHTML = '<span class="spin"></span> Đang quét…';
+  res.style.display = 'none';
+
+  try {
+    const r = await fetch(API_BASE + '/api/scan-images', {method:'POST'});
+    const d = await r.json();
+
+    if (d.error) {
+      res.style.display = 'block';
+      res.innerHTML = `<div class="alert alert-e"><span>❌</span><span>${d.error}</span></div>`;
+      toast('Quét ảnh thất bại', 'terr');
+    } else {
+      // Merge extracted info into state and fill form
+      S.info = Object.assign({}, S.info, d.info);
+      fillFormFromState();
+
+      // Count filled fields
+      const filled = Object.values(d.info).filter(v => v && String(v).trim()).length;
+      res.style.display = 'block';
+      res.innerHTML = `<div class="alert alert-ok"><span>✅</span><span>Trích xuất thành công <strong>${filled} trường thông tin</strong> — đã điền vào bảng dữ liệu. Kiểm tra lại ở Bước 2.</span></div>`;
+      toast('Quét ảnh thành công — ' + filled + ' trường được điền', 'tok');
+    }
+  } catch(e) {
+    res.style.display = 'block';
+    res.innerHTML = `<div class="alert alert-e"><span>❌</span><span>Lỗi kết nối server</span></div>`;
+    toast('Lỗi kết nối server', 'terr');
+  }
+
+  btn.disabled = false;
+  txt.textContent = '🔍 Quét thông tin';
+}
+
+// ── Clipboard paste (Ctrl+V ảnh) ──────────────────────────────────────
+document.addEventListener('paste', async (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+
+  const imageFiles = [];
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) imageFiles.push(file);
+    }
+  }
+  if (!imageFiles.length) return;
+
+  e.preventDefault();
+  const st = document.getElementById('imgStatus');
+  st.textContent = '⏳ Đang tải ảnh từ clipboard…'; st.className = 'up-status';
+
+  const fd = new FormData();
+  imageFiles.forEach((f, i) => {
+    // Generate filename with timestamp
+    const ext = f.type.split('/')[1] || 'png';
+    const name = `clipboard_${Date.now()}_${i}.${ext}`;
+    fd.append('file' + i, f, name);
+  });
+
+  try {
+    const r = await fetch(API_BASE + '/api/upload-images', {method:'POST', body:fd});
+    const d = await r.json();
+    st.textContent = '✅ Đã dán ' + d.saved.length + ' ảnh từ clipboard'; st.className = 'up-status ok';
+    loadImages();
+    toast('Đã dán ' + d.saved.length + ' ảnh từ clipboard', 'tok');
+  } catch(err) {
+    st.textContent = '❌ Lỗi khi dán ảnh'; st.className = 'up-status err';
+    toast('Lỗi khi dán ảnh từ clipboard', 'terr');
+  }
+});
 
 // ── Toast ──────────────────────────────────────────────────────────────
 let toastTimer;

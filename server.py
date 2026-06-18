@@ -259,6 +259,120 @@ def download_file(filename):
     return send_from_directory(OUTPUT_DIR, safe, as_attachment=True)
 
 
+SCAN_PROMPT = """Đây là các ảnh tài liệu xe cơ giới Việt Nam (giấy đăng ký xe, giấy phép lái xe, màn hình hệ thống PTI, giấy chứng nhận bảo hiểm, báo giá sửa chữa). Hãy trích xuất thông tin và trả về JSON với các trường sau (bỏ trống "" nếu không tìm thấy):
+
+{
+  "bien_so_xe": "",
+  "hang_xe": "",
+  "dong_xe": "",
+  "phien_ban": "",
+  "nam_sx": "",
+  "so_loai": "",
+  "so_khung": "",
+  "so_may": "",
+  "trong_tai": "",
+  "so_cho_ngoi": "",
+  "giay_phep_luu_hanh": "",
+  "gplh_tu_ngay": "",
+  "gplh_den_ngay": "",
+  "giay_phep_lai_xe": "",
+  "hang_gplx": "",
+  "gplx_tu_ngay": "",
+  "gplx_den_ngay": "",
+  "chu_xe": "",
+  "dien_thoai_chu_xe": "",
+  "dia_chi_chu_xe": "",
+  "lai_xe": "",
+  "dien_thoai_lai_xe": "",
+  "dia_chi_lai_xe": "",
+  "so_hop_dong": "",
+  "so_gcn_bh": "",
+  "gcn_bh_tu_ngay": "",
+  "gcn_bh_den_ngay": "",
+  "gia_tri_xe": "",
+  "phi_bh": "",
+  "dk_bs": "",
+  "so_ho_so": "",
+  "ma_giam_dinh_vien": "",
+  "don_vi_quan_ly": "Phòng Giám định và Cứu hộ Quảng Ninh",
+  "ngay_giam_dinh": "",
+  "ngay_vao_gara": "",
+  "ngay_tai_nan": "",
+  "khoang_gio_tai_nan": "",
+  "dia_diem_tai_nan": "",
+  "dien_bien_tai_nan": "",
+  "nguyen_nhan_tai_nan": "",
+  "tien_tt": "",
+  "ten_gara": "",
+  "so_tk": "",
+  "ten_ngan_hang": "",
+  "dia_chi_ngan_hang": ""
+}
+
+Lưu ý quan trọng:
+- Ngày tháng định dạng DD/MM/YYYY
+- Chỉ trả về JSON thuần, không thêm text hay markdown nào khác
+- Biển số xe giữ nguyên định dạng gốc (vd: 14A-894.22)
+- Số tiền để nguyên số không có dấu phẩy (vd: 500000000)
+- Nếu cùng một thông tin xuất hiện trên nhiều ảnh, ưu tiên ảnh màn hình hệ thống PTI"""
+
+
+@app.route('/api/scan-images', methods=['POST'])
+def scan_images():
+    """Dùng Claude Vision API để trích xuất thông tin từ ảnh trong input/."""
+    try:
+        import anthropic as _anthropic
+        import base64
+    except ImportError:
+        return jsonify({'error': 'Thư viện anthropic chưa cài. Chạy: pip install anthropic'}), 500
+
+    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    if not api_key:
+        return jsonify({'error': 'Chưa cấu hình ANTHROPIC_API_KEY trong biến môi trường'}), 500
+
+    # Thu thập ảnh từ input/ (tối đa 10 ảnh)
+    image_contents = []
+    if os.path.exists(INPUT_DIR):
+        for fname in sorted(os.listdir(INPUT_DIR))[:10]:
+            ext = fname.lower().rsplit('.', 1)[-1]
+            if ext in ALLOWED_IMAGE:
+                with open(os.path.join(INPUT_DIR, fname), 'rb') as fp:
+                    b64 = base64.standard_b64encode(fp.read()).decode('utf-8')
+                mime = 'image/jpeg' if ext in ('jpg', 'jpeg') else f'image/{ext}'
+                image_contents.append({
+                    'type': 'image',
+                    'source': {'type': 'base64', 'media_type': mime, 'data': b64}
+                })
+
+    if not image_contents:
+        return jsonify({'error': 'Chưa có ảnh nào trong thư mục input. Hãy tải ảnh lên trước.'}), 400
+
+    image_contents.append({'type': 'text', 'text': SCAN_PROMPT})
+
+    try:
+        client = _anthropic.Anthropic(api_key=api_key)
+        msg = client.messages.create(
+            model='claude-opus-4-8',
+            max_tokens=2048,
+            messages=[{'role': 'user', 'content': image_contents}]
+        )
+        raw = msg.content[0].text.strip()
+    except Exception as e:
+        return jsonify({'error': f'Lỗi gọi Claude API: {e}'}), 500
+
+    # Tách JSON từ response
+    import re
+    m = re.search(r'\{[\s\S]+\}', raw)
+    if not m:
+        return jsonify({'error': 'Không trích xuất được JSON từ phản hồi AI', 'raw': raw[:500]}), 500
+    try:
+        info = json.loads(m.group())
+    except Exception as e:
+        return jsonify({'error': f'JSON không hợp lệ: {e}', 'raw': raw[:500]}), 500
+
+    return jsonify({'ok': True, 'info': info})
+
+
 @app.route('/api/preview/<filename>')
 def preview_file(filename):
     safe = secure_filename(filename)
