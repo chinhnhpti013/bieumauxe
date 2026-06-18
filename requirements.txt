@@ -3,3 +3,4 @@ openpyxl>=3.1
 gunicorn>=22.0
 mammoth>=1.6
 anthropic>=0.40
+pymupdf>=1.23
