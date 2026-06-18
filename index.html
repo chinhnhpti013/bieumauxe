@@ -737,8 +737,8 @@ function renderGallery() {
   if(!S.images.length){ sec.style.display='none'; return; }
   sec.style.display='block';
   gal.innerHTML = S.images.map(f=>`
-    <div class="gthumb" onclick="openLb('/input/${encodeURIComponent(f)}')">
-      <img src="/input/${encodeURIComponent(f)}" loading="lazy" alt="${f}">
+    <div class="gthumb" onclick="openLb('${API_BASE}/input/${encodeURIComponent(f)}')">
+      <img src="${API_BASE}/input/${encodeURIComponent(f)}" loading="lazy" alt="${f}">
       <div class="gthumb-lbl">${f}</div>
     </div>`).join('');
 }
@@ -1078,7 +1078,7 @@ function toast(msg, type=''){
 async function resetHoSo() {
   if (!confirm('Xóa toàn bộ dữ liệu hồ sơ hiện tại (ảnh, Excel, file xuất ra) và bắt đầu hồ sơ mới?')) return;
   try {
-    const r = await fetch('/api/reset', {method:'POST'});
+    const r = await fetch(API_BASE + '/api/reset', {method:'POST'});
     const d = await r.json();
     if (d.ok) {
       showToast('Đã xóa hồ sơ cũ. Đang tải lại…', 'ok');
