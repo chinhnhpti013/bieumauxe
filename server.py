@@ -160,7 +160,7 @@ def list_input_images():
     images = []
     if os.path.exists(INPUT_DIR):
         for f in sorted(os.listdir(INPUT_DIR)):
-            if f.lower().rsplit('.', 1)[-1] in ALLOWED_IMAGE:
+            if f.lower().rsplit('.', 1)[-1] in ALLOWED_IMAGE | ALLOWED_PDF:
                 images.append(f)
     return jsonify({'images': images})
 
@@ -350,22 +350,38 @@ def scan_images():
     if not api_key:
         return jsonify({'error': 'Chưa cấu hình ANTHROPIC_API_KEY trong biến môi trường'}), 500
 
-    # Thu thập ảnh từ input/ (tối đa 10 ảnh)
+    # Thu thập ảnh và PDF từ input/ (tối đa 20 mục)
     image_contents = []
     if os.path.exists(INPUT_DIR):
-        for fname in sorted(os.listdir(INPUT_DIR))[:10]:
+        for fname in sorted(os.listdir(INPUT_DIR))[:20]:
             ext = fname.lower().rsplit('.', 1)[-1]
+            fpath = os.path.join(INPUT_DIR, fname)
             if ext in ALLOWED_IMAGE:
-                with open(os.path.join(INPUT_DIR, fname), 'rb') as fp:
+                with open(fpath, 'rb') as fp:
                     b64 = base64.standard_b64encode(fp.read()).decode('utf-8')
                 mime = 'image/jpeg' if ext in ('jpg', 'jpeg') else f'image/{ext}'
                 image_contents.append({
                     'type': 'image',
                     'source': {'type': 'base64', 'media_type': mime, 'data': b64}
                 })
+            elif ext == 'pdf':
+                # Render mỗi trang PDF thành ảnh PNG rồi gửi lên Claude Vision
+                try:
+                    import fitz  # pymupdf
+                    doc = fitz.open(fpath)
+                    for page in doc:
+                        pix = page.get_pixmap(dpi=150)
+                        b64 = base64.standard_b64encode(pix.tobytes('png')).decode('utf-8')
+                        image_contents.append({
+                            'type': 'image',
+                            'source': {'type': 'base64', 'media_type': 'image/png', 'data': b64}
+                        })
+                    doc.close()
+                except Exception:
+                    pass  # pymupdf chưa cài hoặc PDF bị lỗi — bỏ qua
 
     if not image_contents:
-        return jsonify({'error': 'Chưa có ảnh nào trong thư mục input. Hãy tải ảnh lên trước.'}), 400
+        return jsonify({'error': 'Chưa có ảnh hoặc PDF nào trong thư mục input. Hãy tải file lên trước.'}), 400
 
     image_contents.append({'type': 'text', 'text': SCAN_PROMPT})
 

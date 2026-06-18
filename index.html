@@ -736,11 +736,15 @@ function renderGallery() {
   const gal = document.getElementById('gallery');
   if(!S.images.length){ sec.style.display='none'; return; }
   sec.style.display='block';
-  gal.innerHTML = S.images.map(f=>`
-    <div class="gthumb" onclick="openLb('${API_BASE}/input/${encodeURIComponent(f)}')">
-      <img src="${API_BASE}/input/${encodeURIComponent(f)}" loading="lazy" alt="${f}">
-      <div class="gthumb-lbl">${f}</div>
-    </div>`).join('');
+  gal.innerHTML = S.images.map(f=>{
+    const isPdf = f.toLowerCase().endsWith('.pdf');
+    const url = `${API_BASE}/input/${encodeURIComponent(f)}`;
+    const thumb = isPdf
+      ? `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:80px;font-size:32px;color:#c0392b">📄<span style="font-size:10px;margin-top:4px;color:#666">PDF</span></div>`
+      : `<img src="${url}" loading="lazy" alt="${f}">`;
+    const click = isPdf ? `window.open('${url}','_blank')` : `openLb('${url}')`;
+    return `<div class="gthumb" onclick="${click}">${thumb}<div class="gthumb-lbl">${f}</div></div>`;
+  }).join('');
 }
 
 // ── Lightbox ───────────────────────────────────────────────────────────
