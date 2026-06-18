@@ -340,7 +340,10 @@ Hướng dẫn đọc từng loại tài liệu:
 - "Phiếu xác minh phí" (XMP / mẫu xe cơ giới PTI): chứa Số GCN BH → "so_gcn_bh"; Số hợp đồng → "so_hop_dong"; Thời hạn bảo hiểm từ/đến → "gcn_bh_tu_ngay"/"gcn_bh_den_ngay"; Phí bảo hiểm (dòng tổng phí hoặc "Phí BH") → "phi_bh"; Điều kiện bổ sung → "dk_bs"
 - "Giấy chứng nhận bảo hiểm" (GCN BH): số GCN BH ở đầu trang, thời hạn hiệu lực, phí BH, họ tên chủ xe, biển số
 - Màn hình hệ thống PTI tab "Tổn thất - Chi trả": số hồ sơ ("so_ho_so"), mã GĐV ("ma_giam_dinh_vien"), diễn biến tai nạn ("dien_bien_tai_nan"), tên gara ("ten_gara"), tiền thanh toán ("tien_tt")
-- Màn hình hệ thống PTI tab "Thông tin giám định": thông tin xe, chủ xe, lái xe, ngày giám định, ngày vào gara"""
+- Màn hình hệ thống PTI tab "Thông tin giám định": thông tin xe, chủ xe, lái xe, ngày giám định, ngày vào gara
+- "Giấy phép lái xe" (GPLX): mặt trước có "Họ và tên" → điền vào "lai_xe"; "Nơi cư trú" hoặc "Địa chỉ" → "dia_chi_lai_xe"; "Số GPLX" → "giay_phep_lai_xe"; "Hạng" → "hang_gplx"; "Có giá trị đến" → "gplx_den_ngay"; "Ngày cấp" → "gplx_tu_ngay"; số điện thoại lái xe thường không có trên GPLX nên để trống
+- "Giấy đăng ký xe" / "Chứng nhận đăng ký xe": "Họ tên chủ xe" → "chu_xe"; "Địa chỉ" → "dia_chi_chu_xe"; "Biển số" → "bien_so_xe"; "Nhãn hiệu" → "hang_xe"; "Loại xe" → "dong_xe"; "Số khung" → "so_khung"; "Số máy" → "so_may"; "Năm sản xuất" → "nam_sx"; "Số chỗ ngồi" → "so_cho_ngoi"
+- "Giấy chứng nhận kiểm định" (đăng kiểm): "Số phiếu" → "giay_phep_luu_hanh"; "Có giá trị đến" → "gplh_den_ngay""""
 
 
 @app.route('/api/scan-images', methods=['POST'])
