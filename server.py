@@ -334,7 +334,13 @@ Lưu ý quan trọng:
 - Biển số xe giữ nguyên định dạng gốc (vd: 14A-894.22)
 - Số tiền để nguyên số không có dấu phẩy (vd: 500000000)
 - Nếu cùng một thông tin xuất hiện trên nhiều ảnh, ưu tiên ảnh màn hình hệ thống PTI
-- Trường "phu_tung": trích xuất từ bảng báo giá / danh sách phụ tùng nếu có; "phuong_an" chỉ nhận 3 giá trị: "Thay thế có thu hồi", "Thay thế không thu hồi", hoặc "Sửa chữa"; nếu không tìm thấy danh sách phụ tùng thì để mảng rỗng []"""
+- Trường "phu_tung": trích xuất từ bảng báo giá / danh sách phụ tùng nếu có; "phuong_an" chỉ nhận 3 giá trị: "Thay thế có thu hồi", "Thay thế không thu hồi", hoặc "Sửa chữa"; nếu không tìm thấy danh sách phụ tùng thì để mảng rỗng []
+
+Hướng dẫn đọc từng loại tài liệu:
+- "Phiếu xác minh phí" (XMP / mẫu xe cơ giới PTI): chứa Số GCN BH → "so_gcn_bh"; Số hợp đồng → "so_hop_dong"; Thời hạn bảo hiểm từ/đến → "gcn_bh_tu_ngay"/"gcn_bh_den_ngay"; Phí bảo hiểm (dòng tổng phí hoặc "Phí BH") → "phi_bh"; Điều kiện bổ sung → "dk_bs"
+- "Giấy chứng nhận bảo hiểm" (GCN BH): số GCN BH ở đầu trang, thời hạn hiệu lực, phí BH, họ tên chủ xe, biển số
+- Màn hình hệ thống PTI tab "Tổn thất - Chi trả": số hồ sơ ("so_ho_so"), mã GĐV ("ma_giam_dinh_vien"), diễn biến tai nạn ("dien_bien_tai_nan"), tên gara ("ten_gara"), tiền thanh toán ("tien_tt")
+- Màn hình hệ thống PTI tab "Thông tin giám định": thông tin xe, chủ xe, lái xe, ngày giám định, ngày vào gara"""
 
 
 @app.route('/api/scan-images', methods=['POST'])
