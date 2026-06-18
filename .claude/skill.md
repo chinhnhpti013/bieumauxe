@@ -41,11 +41,29 @@ for row in ws_pt.iter_rows(min_row=2, values_only=True):
         })
 ```
 
-### 1b. Nếu đầu vào là ảnh (`input/*.jpg` / `input/*.png`)
+### 1b. Nếu đầu vào là ảnh / PDF (qua Web App)
 
-- Dùng Claude vision để đọc và trích xuất từng trường thông tin
-- Map vào dict `data` cùng cấu trúc với 1a
-- Yêu cầu người dùng xác nhận trước khi tiến hành bước tiếp theo
+Người dùng upload lên giao diện web → bấm **Quét thông tin** → `POST /api/scan-images` gọi Claude Vision.
+
+**Xử lý PDF trong scan** (`server.py`):
+1. Có text layer → `pdfplumber` extract text → gửi dạng text block
+2. Scan ảnh (không có text) → `pymupdf` render PNG → gửi dạng ảnh
+
+**Mapping nhãn tài liệu → JSON field** (xem CLAUDE.md mục "SCAN_PROMPT"):
+
+| Tài liệu | Nhãn | Field |
+|----------|------|-------|
+| GPLX | `Số/No:` | `giay_phep_lai_xe` |
+| GPLX | `Họ tên/Full name:` | `lai_xe` |
+| GPLX | `Nơi cư trú/Address:` | `dia_chi_lai_xe` |
+| GPLX | `Hạng/Class:` | `hang_gplx` |
+| GPLX | `Hiệu lực từ ngày/Date:` | `gplx_tu_ngay` |
+| GPLX | `Có giá trị đến/Expires:` | `gplx_den_ngay` |
+| Phiếu XMP | Số GCN BH | `so_gcn_bh` |
+| Phiếu XMP | Phí BH | `phi_bh` |
+| Phiếu XMP | Điều kiện bổ sung | `dk_bs` |
+
+**Fallback**: nếu `lai_xe` trống sau scan → server tự copy từ `chu_xe`.
 
 ---
 

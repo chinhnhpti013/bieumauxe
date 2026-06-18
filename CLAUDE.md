@@ -170,6 +170,56 @@ Script mẫu đã hoạt động: `tao_bien_ban_gd.py` (hàm `merge_split_placeh
 7. Pack lại thành `.docx` → lưu vào `output/`
 8. Kiểm tra XML hợp lệ bằng `xml.etree.ElementTree` trước khi báo hoàn tất
 
+## Web App (`server.py` + `index.html`)
+
+Dự án có giao diện web Flask chạy trên Render. Người dùng upload ảnh/PDF → bấm "Quét thông tin" → AI điền form.
+
+### API chính
+
+| Route | Mô tả |
+|-------|-------|
+| `POST /api/upload-images` | Nhận ảnh (JPG/PNG) và PDF, lưu vào `input/` |
+| `POST /api/upload-excel` | Nhận file Excel, đọc và trả dữ liệu |
+| `GET /api/input-images` | Liệt kê file trong `input/` (ảnh + PDF) |
+| `POST /api/scan-images` | Gọi Claude Vision trích xuất thông tin |
+| `POST /api/generate` | Tạo file docx output |
+
+### Xử lý PDF trong scan
+
+1. **Có text layer** (Phiếu XMP): dùng `pdfplumber` extract text → gửi dạng text block vào prompt
+2. **Scan ảnh** (không có text): fallback dùng `pymupdf` render từng trang → gửi dạng ảnh PNG
+
+### SCAN_PROMPT — Mapping nhãn tài liệu → JSON field
+
+**Giấy phép lái xe (GPLX)**:
+
+| Nhãn trên thẻ | → JSON field |
+|--------------|-------------|
+| `Số/No:` | `giay_phep_lai_xe` |
+| `Họ tên/Full name:` | `lai_xe` (bắt buộc điền dù trùng chủ xe) |
+| `Nơi cư trú/Address:` | `dia_chi_lai_xe` |
+| `Hạng/Class:` | `hang_gplx` |
+| `Hiệu lực từ ngày/Date:` | `gplx_tu_ngay` |
+| `Có giá trị đến/Expires:` | `gplx_den_ngay` |
+
+**Phiếu xác minh phí (XMP)**:
+
+| Nhãn | → JSON field |
+|------|-------------|
+| Số GCN BH | `so_gcn_bh` |
+| Số hợp đồng | `so_hop_dong` |
+| Thời hạn BH từ/đến | `gcn_bh_tu_ngay` / `gcn_bh_den_ngay` |
+| Phí BH (tổng phí) | `phi_bh` |
+| Điều kiện bổ sung | `dk_bs` |
+
+**Fallback server-side**: nếu `lai_xe` trống sau scan → tự động copy từ `chu_xe`.
+
+### Thư viện cần thiết (requirements.txt)
+
+```
+flask, openpyxl, gunicorn, mammoth, anthropic, pymupdf, pdfplumber
+```
+
 ## Quy trình OCR / điền Excel
 
 **Nguồn dữ liệu thực tế** (thư mục `input/`):
