@@ -316,7 +316,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div id="scanResult" style="display:none;margin-top:12px"></div>
       </div>
 
-      <div style="display:flex;gap:10px;justify-content:flex-end">
+      <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
+        <button class="btn btn-out btn-lg" onclick="resetHoSo()" style="color:var(--danger,#d32f2f);border-color:var(--danger,#d32f2f)">🗑 Hồ sơ mới</button>
         <button class="btn btn-blue btn-lg" onclick="goStep(2)">Tiếp tục nhập liệu →</button>
       </div>
     </div>
@@ -994,14 +995,27 @@ async function scanImages() {
       toast('Quét ảnh thất bại', 'terr');
     } else {
       // Merge extracted info into state and fill form
-      S.info = Object.assign({}, S.info, d.info);
+      const { phu_tung: ptList, ...infoFields } = d.info;
+      S.info = Object.assign({}, S.info, infoFields);
       fillFormFromState();
 
+      // Populate phụ tùng if scan returned a list
+      if (Array.isArray(ptList) && ptList.length) {
+        S.phuTung = ptList.map(pt => ({
+          ten: pt.ten || '',
+          phuong_an: pt.phuong_an || 'Sửa chữa',
+          sl: parseInt(pt.sl) || 1,
+        }));
+        renderPtTable();
+      }
+
       // Count filled fields
-      const filled = Object.values(d.info).filter(v => v && String(v).trim()).length;
+      const filled = Object.values(infoFields).filter(v => v && String(v).trim()).length;
+      const ptCount = (Array.isArray(ptList) && ptList.length) ? ptList.length : 0;
+      const ptMsg = ptCount ? ` + <strong>${ptCount} phụ tùng</strong>` : '';
       res.style.display = 'block';
-      res.innerHTML = `<div class="alert alert-ok"><span>✅</span><span>Trích xuất thành công <strong>${filled} trường thông tin</strong> — đã điền vào bảng dữ liệu. Kiểm tra lại ở Bước 2.</span></div>`;
-      toast('Quét ảnh thành công — ' + filled + ' trường được điền', 'tok');
+      res.innerHTML = `<div class="alert alert-ok"><span>✅</span><span>Trích xuất thành công <strong>${filled} trường thông tin</strong>${ptMsg} — đã điền vào bảng dữ liệu. Kiểm tra lại ở Bước 2.</span></div>`;
+      toast('Quét ảnh thành công — ' + filled + ' trường' + (ptCount ? ` + ${ptCount} phụ tùng` : ''), 'tok');
     }
   } catch(e) {
     res.style.display = 'block';
