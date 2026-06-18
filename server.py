@@ -431,6 +431,12 @@ def scan_images():
     except Exception as e:
         return jsonify({'error': f'JSON không hợp lệ: {e}', 'raw': raw[:500]}), 500
 
+    # Nếu lai_xe trống thì mặc định = chu_xe (chủ xe thường cũng là lái xe)
+    if not info.get('lai_xe') and info.get('chu_xe'):
+        info['lai_xe'] = info['chu_xe']
+    if not info.get('dia_chi_lai_xe') and info.get('dia_chi_chu_xe'):
+        info['dia_chi_lai_xe'] = info['dia_chi_chu_xe']
+
     return jsonify({'ok': True, 'info': info, 'files_loaded': files_loaded})
 
 
