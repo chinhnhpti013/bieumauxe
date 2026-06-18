@@ -247,6 +247,22 @@ def list_output_files():
     return jsonify({'files': _list_output()})
 
 
+@app.route('/api/reset', methods=['POST'])
+def reset():
+    """Xóa toàn bộ file trong input/ và output/ để bắt đầu hồ sơ mới."""
+    deleted = []
+    for folder in [INPUT_DIR, OUTPUT_DIR]:
+        if os.path.exists(folder):
+            for fname in os.listdir(folder):
+                fpath = os.path.join(folder, fname)
+                try:
+                    os.remove(fpath)
+                    deleted.append(fname)
+                except Exception:
+                    pass
+    return jsonify({'ok': True, 'deleted': deleted})
+
+
 def _list_output():
     if not os.path.exists(OUTPUT_DIR):
         return []

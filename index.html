@@ -222,7 +222,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="brand-sub">Phòng Giám định &amp; Cứu hộ Quảng Ninh</div>
     </div>
   </div>
-  <div class="hdr-date" id="hdrDate"></div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="hdr-date" id="hdrDate"></div>
+    <button class="btn btn-out" style="border-color:rgba(255,255,255,.35);color:#fff;font-size:13px;padding:7px 14px" onclick="resetHoSo()">＋ Hồ sơ mới</button>
+  </div>
 </header>
 
 <!-- STEPPER -->
@@ -1056,6 +1059,22 @@ function toast(msg, type=''){
   el.className = 'toast show'+(type?' '+type:'');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>el.classList.remove('show'),3200);
+}
+
+async function resetHoSo() {
+  if (!confirm('Xóa toàn bộ dữ liệu hồ sơ hiện tại (ảnh, Excel, file xuất ra) và bắt đầu hồ sơ mới?')) return;
+  try {
+    const r = await fetch('/api/reset', {method:'POST'});
+    const d = await r.json();
+    if (d.ok) {
+      showToast('Đã xóa hồ sơ cũ. Đang tải lại…', 'ok');
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      showToast('Lỗi reset: ' + (d.error||'không xác định'), 'err');
+    }
+  } catch(e) {
+    showToast('Không kết nối được server', 'err');
+  }
 }
 </script>
 </body>
