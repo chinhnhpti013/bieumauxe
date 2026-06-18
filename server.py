@@ -371,20 +371,34 @@ def scan_images():
                     'source': {'type': 'base64', 'media_type': mime, 'data': b64}
                 })
             elif ext == 'pdf':
-                # Render mỗi trang PDF thành ảnh PNG rồi gửi lên Claude Vision
+                pdf_text = ''
+                # Ưu tiên extract text bằng pdfplumber (nhanh, chính xác với PDF có text layer)
                 try:
-                    import fitz  # pymupdf
-                    doc = fitz.open(fpath)
-                    for page in doc:
-                        pix = page.get_pixmap(dpi=150)
-                        b64 = base64.standard_b64encode(pix.tobytes('png')).decode('utf-8')
-                        image_contents.append({
-                            'type': 'image',
-                            'source': {'type': 'base64', 'media_type': 'image/png', 'data': b64}
-                        })
-                    doc.close()
+                    import pdfplumber
+                    with pdfplumber.open(fpath) as pdf:
+                        pdf_text = '\n'.join(p.extract_text() or '' for p in pdf.pages)
                 except Exception:
-                    pass  # pymupdf chưa cài hoặc PDF bị lỗi — bỏ qua
+                    pass
+                if pdf_text.strip():
+                    image_contents.append({
+                        'type': 'text',
+                        'text': f'[Nội dung file PDF: {fname}]\n{pdf_text}'
+                    })
+                else:
+                    # Fallback: render từng trang thành ảnh bằng pymupdf
+                    try:
+                        import fitz  # pymupdf
+                        doc = fitz.open(fpath)
+                        for page in doc:
+                            pix = page.get_pixmap(dpi=150)
+                            b64 = base64.standard_b64encode(pix.tobytes('png')).decode('utf-8')
+                            image_contents.append({
+                                'type': 'image',
+                                'source': {'type': 'base64', 'media_type': 'image/png', 'data': b64}
+                            })
+                        doc.close()
+                    except Exception:
+                        pass
 
     if not image_contents:
         return jsonify({'error': 'Chưa có ảnh hoặc PDF nào trong thư mục input. Hãy tải file lên trước.'}), 400
