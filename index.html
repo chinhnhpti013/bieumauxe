@@ -188,6 +188,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .toast.tok{background:var(--ok)}
 .toast.terr{background:var(--err)}
 
+/* ── SCAN INNER ── */
+.scan-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+/* ── STEP1 ACTIONS ── */
+.step1-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center}
+
 /* ── DIVIDER ── */
 .hr{height:1px;background:var(--border);margin:18px 0}
 
@@ -196,16 +202,94 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .err-block{background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r2);padding:12px 15px;font-size:12.5px;color:#991b1b;margin-top:12px}
 .err-block ul{margin-left:18px}
 
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .fg3{grid-template-columns:1fr 1fr}
+  .doc-grid{grid-template-columns:repeat(2,1fr)}
+}
+
 @media(max-width:640px){
+  /* Layout */
   .up-grid{grid-template-columns:1fr}
   .fg{grid-template-columns:1fr}
+  .fg3{grid-template-columns:1fr 1fr}
   .f.sp2,.f.sp3{grid-column:span 1}
-  .doc-grid{grid-template-columns:1fr 1fr}
-  .hdr{padding:0 16px}
-  .stepper-wrap{padding:0 16px}
-  .main{padding:18px 12px 50px}
-  .pb{padding:18px}
-  .abar{flex-direction:column;gap:10px;align-items:stretch}
+  .main{padding:14px 10px 60px}
+  .pb{padding:16px}
+
+  /* Header */
+  .hdr{height:52px;padding:0 14px}
+  .brand-mark{width:30px;height:30px;border-radius:6px}
+  .brand-mark img{width:22px;height:22px}
+  .brand-name{font-size:13px}
+  .brand-sub{display:none}
+  .hdr-date{display:none}
+  .hdr>div:last-child button{font-size:12px;padding:6px 11px}
+
+  /* Stepper */
+  .stepper-wrap{padding:0 10px;top:52px}
+  .stepper{gap:0}
+  .stp{gap:6px;padding:10px 0}
+  .stp:not(:last-child)::after{left:calc(50% + 20px)}
+  .stp-n{width:26px;height:26px;font-size:11px}
+  .stp-label{display:none}
+  .stp-name{font-size:11px;white-space:nowrap}
+
+  /* Panel header */
+  .ph{padding:13px 16px;gap:10px}
+  .ph-icon{width:34px;height:34px;font-size:16px;border-radius:6px}
+  .ph-title{font-size:15px}
+  .ph-desc{font-size:12px}
+
+  /* Tabs */
+  .ftab{padding:8px 10px;font-size:12px;gap:4px}
+  .ftab-ico{font-size:13px}
+
+  /* Document cards */
+  .doc-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .dc{padding:12px 10px}
+  .dc-ico{font-size:18px;margin-bottom:5px}
+  .dc-name{font-size:12px}
+
+  /* Gen bar */
+  .gen-bar{flex-direction:column;align-items:stretch;gap:10px;padding-top:14px}
+  .gen-hint{text-align:center;font-size:12px}
+  .gen-bar .btn-lg{width:100%;justify-content:center}
+
+  /* Output files */
+  .out-file{flex-direction:column;gap:10px;align-items:flex-start}
+  .out-file-l{font-size:12px}
+  .out-file-actions{width:100%;display:flex;gap:8px}
+  .out-file-actions .btn,.out-file-actions a.btn{flex:1;justify-content:center;font-size:12px;padding:8px 10px}
+
+  /* Action bar */
+  .abar{flex-direction:column;gap:8px;align-items:stretch;padding:14px 16px}
+  .abar .btn{width:100%;justify-content:center}
+  .abar>div{display:flex;flex-direction:column;gap:8px;width:100%}
+  .abar>div .btn{width:100%;justify-content:center}
+
+  /* Toast */
+  .toast{left:12px;right:12px;bottom:12px;text-align:center;max-width:none}
+
+  /* Preview modal */
+  .preview-box{width:100vw;height:100dvh;max-width:100%;border-radius:0}
+
+  /* Scan area */
+  .scan-inner{flex-direction:column;align-items:stretch}
+  #scanBtn{width:100%;justify-content:center}
+
+  /* Step 1 bottom buttons */
+  .step1-actions{flex-direction:column;gap:8px}
+  .step1-actions .btn{width:100%;justify-content:center}
+}
+
+@media(max-width:400px){
+  .fg3{grid-template-columns:1fr}
+  .doc-grid{grid-template-columns:1fr}
+  .ftab{padding:7px 8px;font-size:11px}
+  .stp-name{display:none}
+  .stp{padding:8px 0}
+  .brand-info{display:none}
 }
 </style>
 </head>
@@ -304,7 +388,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
       <!-- Scan button area -->
       <div style="background:var(--surf2);border:1.5px solid var(--border2);border-radius:var(--r);padding:18px 20px;margin-bottom:18px">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div class="scan-inner">
           <div>
             <div style="font-weight:600;font-size:14px;margin-bottom:3px">🤖 Quét thông tin từ ảnh bằng AI</div>
             <div style="font-size:12px;color:var(--muted)">Claude Vision sẽ đọc tất cả ảnh đã tải lên và điền tự động vào bảng dữ liệu</div>
@@ -316,7 +400,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div id="scanResult" style="display:none;margin-top:12px"></div>
       </div>
 
-      <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
+      <div class="step1-actions">
         <button class="btn btn-out btn-lg" onclick="resetHoSo()" style="color:var(--danger,#d32f2f);border-color:var(--danger,#d32f2f)">🗑 Hồ sơ mới</button>
         <button class="btn btn-blue btn-lg" onclick="goStep(2)">Tiếp tục nhập liệu →</button>
       </div>
