@@ -9,6 +9,8 @@ from flask import Flask, request, jsonify, send_file, send_from_directory
 import os, sys, json, subprocess, shutil
 import openpyxl
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+load_dotenv()
 
 def _add_cors(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
@@ -343,24 +345,27 @@ Hướng dẫn đọc từng loại tài liệu:
 - Màn hình hệ thống PTI tab "Thông tin giám định": thông tin xe, chủ xe, lái xe, ngày giám định, ngày vào gara
 - "Giấy phép lái xe" (GPLX): tìm các nhãn sau trên thẻ: "Số/No:" → dãy số ngay sau đó → "giay_phep_lai_xe"; "Họ tên/Full name:" → tên ngay sau đó → PHẢI điền vào "lai_xe" (bắt buộc, dù tên trùng chủ xe); "Nơi cư trú/Address:" → địa chỉ ngay sau đó → "dia_chi_lai_xe"; "Hạng/Class:" → "hang_gplx"; "Hiệu lực từ ngày/Date" (dạng ngày/tháng/năm trên thẻ) → "gplx_tu_ngay"; "Có giá trị đến/Expires:" → "gplx_den_ngay"; "Ngày, tháng, năm sinh/Date of birth:" không dùng; số điện thoại lái xe không có trên GPLX nên để trống
 - "Giấy đăng ký xe" / "Chứng nhận đăng ký xe": "Họ tên chủ xe" → "chu_xe"; "Địa chỉ" → "dia_chi_chu_xe"; "Biển số" → "bien_so_xe"; "Nhãn hiệu" → "hang_xe"; "Loại xe" → "dong_xe"; "Số khung" → "so_khung"; "Số máy" → "so_may"; "Năm sản xuất" → "nam_sx"; "Số chỗ ngồi" → "so_cho_ngoi"
-- "Giấy chứng nhận kiểm định" (đăng kiểm): "Số phiếu" → "giay_phep_luu_hanh"; "Có giá trị đến" → "gplh_den_ngay""""
+- "Giấy chứng nhận kiểm định" (đăng kiểm): "Số phiếu" → "giay_phep_luu_hanh"; "Có giá trị đến" → "gplh_den_ngay"
+"""
 
 
 @app.route('/api/scan-images', methods=['POST'])
 def scan_images():
-    """Dùng Claude Vision API để trích xuất thông tin từ ảnh trong input/."""
+    """Dùng Gemini Vision API để trích xuất thông tin từ ảnh trong input/."""
     try:
-        import anthropic as _anthropic
-        import base64
+        from google import genai as google_genai
+        from google.genai import types as genai_types
     except ImportError:
-        return jsonify({'error': 'Thư viện anthropic chưa cài. Chạy: pip install anthropic'}), 500
+        return jsonify({'error': 'Thư viện google-genai chưa cài. Chạy: pip install google-genai'}), 500
 
-    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    api_key = os.environ.get('GEMINI_API_KEY', '')
     if not api_key:
-        return jsonify({'error': 'Chưa cấu hình ANTHROPIC_API_KEY trong biến môi trường'}), 500
+        return jsonify({'error': 'Chưa cấu hình GEMINI_API_KEY trong biến môi trường'}), 500
+
+    client = google_genai.Client(api_key=api_key)
 
     # Thu thập ảnh và PDF từ input/ (tối đa 20 mục)
-    image_contents = []
+    parts = []
     files_loaded = []
     if os.path.exists(INPUT_DIR):
         for fname in sorted(os.listdir(INPUT_DIR))[:20]:
@@ -368,12 +373,9 @@ def scan_images():
             fpath = os.path.join(INPUT_DIR, fname)
             if ext in ALLOWED_IMAGE:
                 with open(fpath, 'rb') as fp:
-                    b64 = base64.standard_b64encode(fp.read()).decode('utf-8')
+                    img_bytes = fp.read()
                 mime = 'image/jpeg' if ext in ('jpg', 'jpeg') else f'image/{ext}'
-                image_contents.append({
-                    'type': 'image',
-                    'source': {'type': 'base64', 'media_type': mime, 'data': b64}
-                })
+                parts.append(genai_types.Part.from_bytes(data=img_bytes, mime_type=mime))
                 files_loaded.append(f'{fname} (ảnh)')
             elif ext == 'pdf':
                 pdf_text = ''
@@ -384,42 +386,34 @@ def scan_images():
                 except Exception:
                     pass
                 if pdf_text.strip():
-                    image_contents.append({
-                        'type': 'text',
-                        'text': f'[Nội dung file PDF: {fname}]\n{pdf_text}'
-                    })
+                    parts.append(genai_types.Part.from_text(text=f'[Nội dung file PDF: {fname}]\n{pdf_text}'))
                     files_loaded.append(f'{fname} (PDF text)')
                 else:
                     try:
                         import fitz  # pymupdf
                         doc = fitz.open(fpath)
+                        page_count = len(doc)
                         for page in doc:
                             pix = page.get_pixmap(dpi=150)
-                            b64 = base64.standard_b64encode(pix.tobytes('png')).decode('utf-8')
-                            image_contents.append({
-                                'type': 'image',
-                                'source': {'type': 'base64', 'media_type': 'image/png', 'data': b64}
-                            })
+                            parts.append(genai_types.Part.from_bytes(data=pix.tobytes('png'), mime_type='image/png'))
                         doc.close()
-                        files_loaded.append(f'{fname} (PDF ảnh, {doc.page_count} trang)')
+                        files_loaded.append(f'{fname} (PDF ảnh, {page_count} trang)')
                     except Exception:
                         files_loaded.append(f'{fname} (PDF - lỗi đọc)')
 
-    if not image_contents:
+    if not parts:
         return jsonify({'error': 'Chưa có ảnh hoặc PDF nào trong thư mục input. Hãy tải file lên trước.'}), 400
 
-    image_contents.append({'type': 'text', 'text': SCAN_PROMPT})
+    parts.append(genai_types.Part.from_text(text=SCAN_PROMPT))
 
     try:
-        client = _anthropic.Anthropic(api_key=api_key)
-        msg = client.messages.create(
-            model='claude-opus-4-8',
-            max_tokens=2048,
-            messages=[{'role': 'user', 'content': image_contents}]
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=parts,
         )
-        raw = msg.content[0].text.strip()
+        raw = response.text.strip()
     except Exception as e:
-        return jsonify({'error': f'Lỗi gọi Claude API: {e}'}), 500
+        return jsonify({'error': f'Lỗi gọi Gemini API: {e}'}), 500
 
     # Tách JSON từ response
     import re
