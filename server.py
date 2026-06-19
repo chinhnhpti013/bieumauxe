@@ -10,7 +10,7 @@ import os, sys, json, subprocess, shutil
 import openpyxl
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
 
 def _add_cors(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
