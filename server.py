@@ -417,9 +417,22 @@ def scan_images():
                 thinking_config=genai_types.ThinkingConfig(thinking_budget=0)
             ),
         )
-        raw = response.text.strip()
     except Exception as e:
         return jsonify({'error': f'Lỗi gọi Gemini API: {e}'}), 500
+
+    try:
+        raw = response.text
+    except Exception:
+        finish = ''
+        try:
+            finish = str(response.candidates[0].finish_reason) if response.candidates else 'no candidates'
+        except Exception:
+            pass
+        return jsonify({'error': f'Gemini không trả về nội dung (finish_reason: {finish})'}), 500
+
+    if not raw or not raw.strip():
+        return jsonify({'error': 'Gemini trả về nội dung rỗng'}), 500
+    raw = raw.strip()
 
     # Tách JSON từ response
     m = re.search(r'\{[\s\S]+\}', raw)
