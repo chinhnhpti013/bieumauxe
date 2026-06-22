@@ -418,16 +418,32 @@ def scan_images():
 
     parts.append(genai_types.Part.from_text(text=SCAN_PROMPT))
 
-    try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=[genai_types.Content(role='user', parts=parts)],
-            config=genai_types.GenerateContentConfig(
-                thinking_config=genai_types.ThinkingConfig(thinking_budget=0)
-            ),
-        )
-    except Exception as e:
-        return jsonify({'error': f'Lỗi gọi Gemini API: {e}'}), 500
+    max_attempts = 4
+    last_error = None
+    for attempt in range(max_attempts):
+        try:
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=[genai_types.Content(role='user', parts=parts)],
+                config=genai_types.GenerateContentConfig(
+                    thinking_config=genai_types.ThinkingConfig(thinking_budget=0)
+                ),
+            )
+            last_error = None
+            break
+        except Exception as e:
+            last_error = e
+            err_str = str(e).lower()
+            # Chỉ retry khi overloaded (503) hoặc rate limit (429)
+            if '503' in err_str or 'overload' in err_str or '429' in err_str or 'rate' in err_str:
+                if attempt < max_attempts - 1:
+                    wait = 2 ** attempt  # 1s, 2s, 4s
+                    import time
+                    time.sleep(wait)
+                    continue
+            break
+    if last_error is not None:
+        return jsonify({'error': f'Lỗi gọi Gemini API: {last_error}'}), 500
 
     try:
         raw = response.text
