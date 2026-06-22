@@ -277,6 +277,15 @@ def download_file(filename):
     return send_from_directory(OUTPUT_DIR, safe, as_attachment=True)
 
 
+@app.route('/api/check-key')
+def check_key():
+    """Debug: kiểm tra API key đang được load (chỉ hiện 8 ký tự đầu)."""
+    key = os.environ.get('GEMINI_API_KEY', '')
+    if not key:
+        return jsonify({'status': 'MISSING', 'hint': 'GEMINI_API_KEY chưa được set'})
+    return jsonify({'status': 'SET', 'prefix': key[:8] + '...', 'length': len(key)})
+
+
 SCAN_PROMPT = """Đây là các ảnh tài liệu xe cơ giới Việt Nam (giấy đăng ký xe, giấy phép lái xe, màn hình hệ thống PTI, giấy chứng nhận bảo hiểm, báo giá sửa chữa). Hãy trích xuất thông tin và trả về JSON với các trường sau (bỏ trống "" nếu không tìm thấy):
 
 {
