@@ -5,8 +5,8 @@ Chạy: python server.py
 Truy cập: http://localhost:5000
 """
 
-from flask import Flask, request, jsonify, send_file, send_from_directory
-import os, sys, json, subprocess, shutil
+from flask import Flask, request, jsonify, send_file, send_from_directory, Response
+import os, sys, json, re, subprocess, shutil
 import openpyxl
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -364,11 +364,14 @@ def scan_images():
 
     client = google_genai.Client(api_key=api_key)
 
-    # Thu thập ảnh và PDF từ input/ (tối đa 20 mục)
+    # Thu thập ảnh và PDF từ input/ (tối đa 20 mục, lọc trước)
     parts = []
     files_loaded = []
     if os.path.exists(INPUT_DIR):
-        for fname in sorted(os.listdir(INPUT_DIR))[:20]:
+        all_files = sorted(os.listdir(INPUT_DIR))
+        media_files = [f for f in all_files
+                       if f.lower().rsplit('.', 1)[-1] in ALLOWED_IMAGE | ALLOWED_PDF][:20]
+        for fname in media_files:
             ext = fname.lower().rsplit('.', 1)[-1]
             fpath = os.path.join(INPUT_DIR, fname)
             if ext in ALLOWED_IMAGE:
@@ -419,7 +422,6 @@ def scan_images():
         return jsonify({'error': f'Lỗi gọi Gemini API: {e}'}), 500
 
     # Tách JSON từ response
-    import re
     m = re.search(r'\{[\s\S]+\}', raw)
     if not m:
         return jsonify({'error': 'Không trích xuất được JSON từ phản hồi AI', 'raw': raw[:500]}), 500
@@ -456,7 +458,6 @@ def preview_file(filename):
   td,th{{border:1px solid #999;padding:4px 8px}}
   img{{max-width:100%}}
 </style></head><body>{html}</body></html>"""
-        from flask import Response
         return Response(page, mimetype='text/html; charset=utf-8')
     except ImportError:
         return Response('<p style="font-family:sans-serif;padding:20px">Thư viện <b>mammoth</b> chưa được cài. Chạy: <code>pip install mammoth</code></p>', mimetype='text/html; charset=utf-8')
