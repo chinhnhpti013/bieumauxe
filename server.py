@@ -409,7 +409,10 @@ def scan_images():
     try:
         response = client.models.generate_content(
             model='gemini-2.5-flash',
-            contents=parts,
+            contents=[genai_types.Content(role='user', parts=parts)],
+            config=genai_types.GenerateContentConfig(
+                thinking_config=genai_types.ThinkingConfig(thinking_budget=0)
+            ),
         )
         raw = response.text.strip()
     except Exception as e:
