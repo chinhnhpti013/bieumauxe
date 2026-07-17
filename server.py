@@ -355,6 +355,11 @@ Hướng dẫn đọc từng loại tài liệu:
 - "Giấy phép lái xe" (GPLX): tìm các nhãn sau trên thẻ: "Số/No:" → dãy số ngay sau đó → "giay_phep_lai_xe"; "Họ tên/Full name:" → tên ngay sau đó → PHẢI điền vào "lai_xe" (bắt buộc, dù tên trùng chủ xe); "Nơi cư trú/Address:" → địa chỉ ngay sau đó → "dia_chi_lai_xe"; "Hạng/Class:" → "hang_gplx"; "Hiệu lực từ ngày/Date" (dạng ngày/tháng/năm trên thẻ) → "gplx_tu_ngay"; "Có giá trị đến/Expires:" → "gplx_den_ngay"; "Ngày, tháng, năm sinh/Date of birth:" không dùng; số điện thoại lái xe không có trên GPLX nên để trống
 - "Giấy đăng ký xe" / "Chứng nhận đăng ký xe": "Họ tên chủ xe" → "chu_xe"; "Địa chỉ" → "dia_chi_chu_xe"; "Biển số" → "bien_so_xe"; "Nhãn hiệu" → "hang_xe"; "Loại xe" → "dong_xe"; "Số khung" → "so_khung"; "Số máy" → "so_may"; "Năm sản xuất" → "nam_sx"; "Số chỗ ngồi" → "so_cho_ngoi"
 - "Giấy chứng nhận kiểm định" (đăng kiểm): "Số phiếu" → "giay_phep_luu_hanh"; "Có giá trị đến" → "gplh_den_ngay"
+
+QUAN TRỌNG — không được suy đoán lái xe: "lai_xe" và "dia_chi_lai_xe" CHỈ được lấy từ
+GPLX hoặc màn hình hệ thống PTI. Nếu không có nguồn nào nêu tên lái xe thì để trống "".
+TUYỆT ĐỐI không copy "chu_xe"/"dia_chi_chu_xe" sang, kể cả khi chỉ có giấy đăng ký xe —
+chủ xe thường là pháp nhân (công ty) nên điền tên công ty vào chỗ lái xe là sai.
 """
 
 
@@ -467,12 +472,6 @@ def scan_images():
         info = json.loads(m.group())
     except Exception as e:
         return jsonify({'error': f'JSON không hợp lệ: {e}', 'raw': raw[:500]}), 500
-
-    # Nếu lai_xe trống thì mặc định = chu_xe (chủ xe thường cũng là lái xe)
-    if not info.get('lai_xe') and info.get('chu_xe'):
-        info['lai_xe'] = info['chu_xe']
-    if not info.get('dia_chi_lai_xe') and info.get('dia_chi_chu_xe'):
-        info['dia_chi_lai_xe'] = info['dia_chi_chu_xe']
 
     return jsonify({'ok': True, 'info': info, 'files_loaded': files_loaded})
 
