@@ -6,8 +6,7 @@ Truy cập: http://localhost:5000
 """
 
 from flask import Flask, request, jsonify, send_file, send_from_directory, Response
-import os, sys, json, re, subprocess, shutil
-import openpyxl
+import os, sys, json, re, subprocess
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'))
@@ -22,8 +21,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(BASE_DIR, 'input')
 OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
 ASSETS_DIR = os.path.join(BASE_DIR, 'assets')
-TEMPLATE_EXCEL = os.path.join(BASE_DIR, 'docs', 'thong_tin_giam_dinh_xe.xlsx')
-INPUT_EXCEL = os.path.join(INPUT_DIR, 'thong_tin_giam_dinh_xe.xlsx')
+DATA_JSON = os.path.join(INPUT_DIR, 'data.json')
 
 os.makedirs(INPUT_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -36,11 +34,10 @@ def handle_options(path):
     return jsonify({}), 200
 
 ALLOWED_IMAGE = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'}
-ALLOWED_EXCEL = {'xlsx', 'xls'}
 ALLOWED_PDF   = {'pdf'}
 
 GDV_DEFAULT = [
-    {'ma': 'CHINH05',  'ten': 'Nguyễn Hồng Chinh', 'sdt': '0903 210 598'},
+    {'ma': 'CHINH05',  'ten': 'Nguyễn Hồng Chinh', 'sdt': '0888955673'},
     {'ma': 'TUYENLM',  'ten': 'Lương Minh Tuyến',   'sdt': ''},
     {'ma': 'DUYNT',    'ten': 'Nguyễn Thế Duy',     'sdt': ''},
     {'ma': 'SONTT',    'ten': 'Trần Thanh Sơn',     'sdt': ''},
@@ -80,67 +77,8 @@ def serve_input(filename):
 
 @app.route('/api/gdv-list')
 def gdv_list():
-    """Trả về danh sách giám định viên từ Excel template (hoặc mặc định)."""
-    try:
-        wb = openpyxl.load_workbook(TEMPLATE_EXCEL)
-        ws = wb['GĐV']
-        gdv = []
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            if row[0] and row[1]:
-                gdv.append({'ma': str(row[0]), 'ten': str(row[1]),
-                             'sdt': str(row[2]) if row[2] else ''})
-        return jsonify({'gdv': gdv or GDV_DEFAULT})
-    except Exception:
-        return jsonify({'gdv': GDV_DEFAULT})
-
-
-@app.route('/api/upload-excel', methods=['POST'])
-def upload_excel():
-    """Nhận file Excel, lưu vào input/, trả về dữ liệu đã đọc."""
-    if 'file' not in request.files:
-        return jsonify({'error': 'Không có file'}), 400
-    f = request.files['file']
-    if not f.filename or not allowed(f.filename, ALLOWED_EXCEL):
-        return jsonify({'error': 'Chỉ chấp nhận file .xlsx'}), 400
-
-    f.save(INPUT_EXCEL)
-
-    try:
-        wb = openpyxl.load_workbook(INPUT_EXCEL)
-        ws_info = wb['Thông tin']
-        ws_pt   = wb['Phụ tùng']
-
-        info = {}
-        for row in ws_info.iter_rows(values_only=True):
-            if row[0] and str(row[0]).startswith('{') and row[2] is not None:
-                key = str(row[0]).strip('{}')
-                val = str(row[2]) if str(row[2]) != 'None' else ''
-                info[key] = val
-
-        phu_tung = []
-        for row in ws_pt.iter_rows(min_row=2, values_only=True):
-            if row[0] and 'Phương án hợp lệ' not in str(row[0]):
-                phu_tung.append({
-                    'ten': str(row[0]),
-                    'phuong_an': str(row[1]) if row[1] else 'Thay thế có thu hồi',
-                    'sl': int(row[2]) if row[2] else 1,
-                })
-
-        gdv_list = GDV_DEFAULT
-        try:
-            ws_gdv = wb['GĐV']
-            gdv_list = []
-            for row in ws_gdv.iter_rows(min_row=2, values_only=True):
-                if row[0] and row[1]:
-                    gdv_list.append({'ma': str(row[0]), 'ten': str(row[1]),
-                                     'sdt': str(row[2]) if row[2] else ''})
-        except Exception:
-            pass
-
-        return jsonify({'ok': True, 'info': info, 'phu_tung': phu_tung, 'gdv_list': gdv_list})
-
-    except Exception as e:
-        return jsonify({'error': f'Lỗi đọc Excel: {e}'}), 500
+    """Trả về danh sách giám định viên."""
+    return jsonify({'gdv': GDV_DEFAULT})
 
 
 @app.route('/api/upload-images', methods=['POST'])
@@ -167,40 +105,27 @@ def list_input_images():
     return jsonify({'images': images})
 
 
-@app.route('/api/save-excel', methods=['POST'])
-def save_excel():
-    """Ghi dữ liệu form xuống file Excel template → input/."""
-    data     = request.json or {}
-    info     = data.get('info', {})
-    phu_tung = data.get('phu_tung', [])
+@app.route('/api/save-data', methods=['POST'])
+def save_data():
+    """Ghi dữ liệu form xuống input/data.json cho các script tao_*.py đọc."""
+    data = request.json or {}
 
-    # Luôn bắt đầu từ template gốc
-    shutil.copy2(TEMPLATE_EXCEL, INPUT_EXCEL)
+    payload = {
+        'info': data.get('info', {}),
+        'phu_tung': [
+            {
+                'ten': pt.get('ten', ''),
+                'phuong_an': pt.get('phuong_an', 'Thay thế có thu hồi'),
+                'sl': int(pt.get('sl') or 1),
+            }
+            for pt in data.get('phu_tung', []) if pt.get('ten')
+        ],
+    }
 
     try:
-        wb = openpyxl.load_workbook(INPUT_EXCEL)
-        ws_info = wb['Thông tin']
-        ws_pt   = wb['Phụ tùng']
-
-        for row in ws_info.iter_rows():
-            if row[0].value and str(row[0].value).startswith('{'):
-                key = str(row[0].value).strip('{}')
-                if key in info:
-                    row[2].value = info[key]
-
-        # Xóa nội dung cũ rồi ghi mới
-        for row in ws_pt.iter_rows(min_row=2):
-            for cell in row:
-                cell.value = None
-
-        for i, pt in enumerate(phu_tung):
-            ws_pt.cell(i + 2, 1, pt.get('ten', ''))
-            ws_pt.cell(i + 2, 2, pt.get('phuong_an', 'Thay thế có thu hồi'))
-            ws_pt.cell(i + 2, 3, int(pt.get('sl', 1)))
-
-        wb.save(INPUT_EXCEL)
+        with open(DATA_JSON, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
         return jsonify({'ok': True})
-
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

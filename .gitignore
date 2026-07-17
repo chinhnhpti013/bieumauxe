@@ -12,7 +12,10 @@ input/*.jpg
 input/*.jpeg
 input/*.png
 input/*.pdf
-input/thong_tin_giam_dinh_xe.xlsx
+input/data.json
+
+# Biến môi trường (chứa API key — không bao giờ commit)
+.env
 
 # Temp
 temp_*.xml

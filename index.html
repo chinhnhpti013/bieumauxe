@@ -58,7 +58,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .pb{padding:26px}
 
 /* ── UPLOAD ── */
-.up-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}
+.up-grid{display:grid;grid-template-columns:1fr;gap:18px;margin-bottom:22px}
 .up-zone{border:2px dashed var(--border2);border-radius:var(--r);padding:30px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surf2);position:relative;overflow:hidden}
 .up-zone:hover,.up-zone.over{border-color:var(--blue);background:#eef1fc}
 .up-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
@@ -348,25 +348,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="ph-icon">📂</div>
       <div>
         <div class="ph-title">Tải dữ liệu lên hệ thống</div>
-        <div class="ph-desc">Upload file Excel thông tin đầy đủ <strong>hoặc</strong> ảnh màn hình / tài liệu để tham chiếu khi nhập liệu</div>
+        <div class="ph-desc">Upload ảnh màn hình / tài liệu để AI trích xuất thông tin</div>
       </div>
     </div>
     <div class="pb">
       <div class="up-grid">
-        <!-- Excel upload -->
-        <div class="up-zone" id="excelZone">
-          <input type="file" accept=".xlsx,.xls" id="excelInput" onchange="handleExcelUpload(this)">
-          <span class="up-ico">📊</span>
-          <div class="up-title">File Excel thông tin</div>
-          <div class="up-hint">thong_tin_giam_dinh_xe.xlsx<br>Kéo thả hoặc nhấp để chọn</div>
-          <div class="up-status" id="excelStatus"></div>
-        </div>
         <!-- Image upload -->
         <div class="up-zone" id="imgZone">
           <input type="file" accept="image/*,.pdf" multiple id="imgInput" onchange="handleImageUpload(this)">
           <span class="up-ico">🖼️</span>
-          <div class="up-title">Ảnh &amp; tài liệu tham chiếu</div>
-          <div class="up-hint">CMND, GPLX, màn hình PTI, báo giá…<br>Hỗ trợ JPG, PNG, PDF</div>
+          <div class="up-title">Ảnh &amp; tài liệu</div>
+          <div class="up-hint">Đăng ký xe, GPLX, màn hình PTI, báo giá, phiếu XMP…<br>Hỗ trợ JPG, PNG, PDF</div>
           <div class="up-status" id="imgStatus"></div>
         </div>
       </div>
@@ -413,7 +405,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="ph-icon">📝</div>
       <div>
         <div class="ph-title">Kiểm tra &amp; chỉnh sửa dữ liệu</div>
-        <div class="ph-desc">Xem lại thông tin trích xuất từ Excel, chỉnh sửa nếu cần, nhập thêm phụ tùng</div>
+        <div class="ph-desc">Xem lại thông tin AI trích xuất từ ảnh, chỉnh sửa nếu cần, nhập thêm phụ tùng</div>
       </div>
     </div>
     <div class="pb">
@@ -557,7 +549,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="abar">
       <button class="btn btn-out" onclick="goStep(1)">← Quay lại</button>
       <div style="display:flex;gap:10px">
-        <button class="btn btn-navy" onclick="saveExcel()">💾 Lưu dữ liệu</button>
+        <button class="btn btn-navy" onclick="saveData()">💾 Lưu dữ liệu</button>
         <button class="btn btn-blue btn-lg" onclick="saveAndNext()">Tiếp tục tạo công văn →</button>
       </div>
     </div>
@@ -720,7 +712,6 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshOutputList();
 
   // Drag & drop setup
-  setupDrop('excelZone','excelInput',handleExcelUpload);
   setupDrop('imgZone','imgInput',handleImageUpload);
 
   // Selected count
@@ -759,32 +750,6 @@ function setupDrop(zoneId, inputId, handler) {
     const dt = e.dataTransfer;
     if(dt.files.length) handler({files: dt.files});
   });
-}
-
-// ── Excel upload ───────────────────────────────────────────────────────
-async function handleExcelUpload(inp) {
-  const file = inp.files ? inp.files[0] : null;
-  if(!file) return;
-  const st = document.getElementById('excelStatus');
-  st.textContent = '⏳ Đang tải…'; st.className='up-status';
-
-  const fd = new FormData();
-  fd.append('file', file);
-  try {
-    const r = await fetch(API_BASE + '/api/upload-excel',{method:'POST',body:fd});
-    const d = await r.json();
-    if(d.error){ st.textContent='❌ '+d.error; st.className='up-status err'; return; }
-
-    S.info = d.info || {};
-    S.phuTung = d.phu_tung || [];
-    if(d.gdv_list && d.gdv_list.length) { S.gdvList = d.gdv_list; buildGdvSelect(); }
-
-    fillFormFromState();
-    st.textContent = '✅ Đã tải: '+file.name; st.className='up-status ok';
-    toast('Đọc Excel thành công — kiểm tra dữ liệu ở Bước 2','tok');
-  } catch(e){
-    st.textContent='❌ Lỗi kết nối server'; st.className='up-status err';
-  }
 }
 
 // ── Image upload ───────────────────────────────────────────────────────
@@ -948,29 +913,31 @@ function removeRow(btn){
 
 function esc(s){ return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
-// ── Save Excel ─────────────────────────────────────────────────────────
-async function saveExcel(){
+// ── Save data ──────────────────────────────────────────────────────────
+async function postData(){
   collectFormToState();
+  const r = await fetch(API_BASE + '/api/save-data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({info:S.info,phu_tung:S.phuTung})});
+  return await r.json();
+}
+
+async function saveData(){
   const btn = event.target;
   btn.disabled=true; btn.textContent='💾 Đang lưu…';
   try{
-    const r = await fetch(API_BASE + '/api/save-excel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({info:S.info,phu_tung:S.phuTung})});
-    const d = await r.json();
-    if(d.ok){ toast('Đã lưu dữ liệu vào Excel','tok'); }
+    const d = await postData();
+    if(d.ok){ toast('Đã lưu dữ liệu','tok'); }
     else { toast('Lỗi: '+d.error,'terr'); }
   }catch(e){ toast('Lỗi kết nối server','terr'); }
   btn.disabled=false; btn.textContent='💾 Lưu dữ liệu';
 }
 
 async function saveAndNext(){
-  collectFormToState();
   const btn = event.target;
   btn.disabled=true; btn.textContent='⏳ Đang lưu…';
   try{
-    const r = await fetch(API_BASE + '/api/save-excel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({info:S.info,phu_tung:S.phuTung})});
-    const d = await r.json();
+    const d = await postData();
     if(d.ok){ goStep(3); toast('Dữ liệu đã lưu — chọn mẫu và tạo công văn','tok'); }
-    else { toast('Lỗi lưu Excel: '+d.error,'terr'); }
+    else { toast('Lỗi lưu dữ liệu: '+d.error,'terr'); }
   }catch(e){ toast('Lỗi kết nối server','terr'); }
   btn.disabled=false; btn.textContent='Tiếp tục tạo công văn →';
 }
@@ -1168,7 +1135,7 @@ function toast(msg, type=''){
 }
 
 async function resetHoSo() {
-  if (!confirm('Xóa toàn bộ dữ liệu hồ sơ hiện tại (ảnh, Excel, file xuất ra) và bắt đầu hồ sơ mới?')) return;
+  if (!confirm('Xóa toàn bộ dữ liệu hồ sơ hiện tại (ảnh, dữ liệu đã nhập, file xuất ra) và bắt đầu hồ sơ mới?')) return;
   try {
     const r = await fetch(API_BASE + '/api/reset', {method:'POST'});
     const d = await r.json();
