@@ -6,44 +6,41 @@
 
 ## Mô tả
 
-Tự động trích xuất thông tin từ dữ liệu đầu vào (ảnh màn hình hệ thống PTI hoặc file Excel tổng hợp) rồi điền vào 8 mẫu biên bản giám định xe cơ giới `.docx`, xuất file hoàn chỉnh vào thư mục `output/`.
+Tự động trích xuất thông tin từ ảnh/PDF tài liệu (màn hình hệ thống PTI, đăng ký xe, GPLX, báo giá, phiếu XMP) rồi điền vào các mẫu biên bản giám định xe cơ giới `.docx`, xuất file hoàn chỉnh vào thư mục `output/`.
 
 ---
 
 ## Bước 1 — Đọc dữ liệu đầu vào
 
-### 1a. Nếu đầu vào là file Excel (`input/*.xlsx`)
+Đầu vào **chỉ nhận ảnh và PDF** (`.jpg`, `.png`, `.pdf`). Không còn nhập liệu bằng file Excel.
+
+### 1a. Đọc dữ liệu đã nhập (`input/data.json`)
+
+Mọi script đọc dữ liệu qua `pti_common.load_data()` — không tự parse:
 
 ```python
-import openpyxl
+from pti_common import load_data
 
-wb = openpyxl.load_workbook("input/<file>.xlsx")
-
-# Sheet "Thông tin": cột A = placeholder, cột B = nhãn, cột C = giá trị
-ws_info = wb["Thông tin"]
-data = {}
-for row in ws_info.iter_rows(min_row=2, values_only=True):
-    placeholder, label, value = row[0], row[1], row[2]
-    if placeholder and str(placeholder).startswith("{"):
-        key = placeholder.strip("{}")
-        data[key] = str(value).strip() if value else ""
-
-# Sheet "Phụ tùng": cột A = tên, cột B = phương án, cột C = số lượng
-ws_pt = wb["Phụ tùng"]
-phu_tung = []
-for row in ws_pt.iter_rows(min_row=2, values_only=True):
-    ten, phuong_an, so_luong = row[0], row[1], row[2]
-    if ten:
-        phu_tung.append({
-            "ten": str(ten).strip(),
-            "phuong_an": str(phuong_an).strip() if phuong_an else "Thay thế không thu hồi",
-            "so_luong": int(so_luong) if so_luong else 1
-        })
+info, phu_tung = load_data()
+# info     : dict, mọi giá trị là str, thiếu dữ liệu là "" (không phải None)
+# phu_tung : list[{'ten': str, 'phuong_an': str, 'sl': int}]
 ```
 
-### 1b. Nếu đầu vào là ảnh / PDF (qua Web App)
+`load_data()` đã tự làm sẵn: ánh xạ mã GĐV → tên + `{SĐT}`, và thêm alias
+`Dien_bien_tai_nan`, `ten_chu_xe`, `ten_lai_xe`, `ten_gara_sua_chua`.
 
-Người dùng upload lên giao diện web → bấm **Quét thông tin** → `POST /api/scan-images` gọi Claude Vision.
+File `input/data.json` do `POST /api/save-data` ghi ra từ form web:
+
+```json
+{
+  "info":     {"bien_so_xe": "14H-042.80", "tien_tt": "125,500,000", ...},
+  "phu_tung": [{"ten": "Cản trước", "phuong_an": "Thay thế có thu hồi", "sl": 1}]
+}
+```
+
+### 1b. Trích xuất từ ảnh / PDF (qua Web App)
+
+Người dùng upload lên giao diện web → bấm **Quét thông tin** → `POST /api/scan-images` gọi Gemini Vision.
 
 **Xử lý PDF trong scan** (`server.py`):
 1. Có text layer → `pdfplumber` extract text → gửi dạng text block
@@ -79,37 +76,24 @@ Chờ xác nhận trước khi sang Bước 3.
 
 ## Bước 3 — Tra mã GĐV → Họ tên + SĐT
 
-Đọc từ sheet "GĐV" trong file Excel (cột A = mã, cột B = tên, cột C = SĐT). Thay `{ma_giam_dinh_vien}` bằng **tên GĐV**, đồng thời cung cấp `{SĐT}` tương ứng.
+`load_data()` đã làm sẵn, dựa trên `GDV_MAP` trong `pti_common.py`: thay `{ma_giam_dinh_vien}` bằng **tên GĐV** và điền `{SĐT}` tương ứng. Không cần làm gì thêm.
 
-```python
-# Đọc từ sheet GĐV trong Excel (nguồn chính xác nhất)
-ws_gdv = wb["GĐV"]
-gdv_map = {}
-for row in ws_gdv.iter_rows(min_row=2, values_only=True):
-    if row[0] and row[1]:
-        gdv_map[str(row[0])] = {"ten": str(row[1]), "sdt": str(row[2]) if row[2] else ""}
+> Lưu ý: placeholder trong template là `{ma_giam_dinh_vien}` (không phải `{ten_giam_dinh_vien}`), và `{SĐT}` (chữ hoa, có dấu). Chỉ mẫu Biên bản giám định dùng `{SĐT}`.
 
-ma = data.get("ma_giam_dinh_vien", "")
-if ma in gdv_map:
-    data["ma_giam_dinh_vien"] = gdv_map[ma]["ten"]
-    data["SĐT"] = gdv_map[ma]["sdt"]
-```
-
-> Lưu ý: placeholder trong template là `{ma_giam_dinh_vien}` (không phải `{ten_giam_dinh_vien}`), và `{SĐT}` (chữ hoa, có dấu).
+Sửa danh sách GĐV thì sửa **cả hai chỗ**: `GDV_MAP` (`pti_common.py`) và `GDV_DEFAULT` (`server.py`, dùng cho dropdown trên web).
 
 ---
 
 ## Bước 4 — Chuyển số tiền sang chữ
 
 ```python
-def so_thanh_chu(n: int) -> str:
-    """Chuyển số nguyên sang chữ Việt Nam (đồng)."""
-    # Implement theo chuẩn đọc số tiền Việt Nam
-    # Ví dụ: 1_500_000 → "Một triệu năm trăm nghìn đồng"
-    ...
+from pti_common import so_thanh_chu
 
-data["tien_tt_bang_chu"] = so_thanh_chu(int(data.get("tien_tt", "0").replace(".", "").replace(",", "")))
+info['tien_tt_chu'] = so_thanh_chu(info.get('tien_tt', '0'))
+# "125,500,000" → "Một trăm hai mươi lăm triệu năm trăm nghìn đồng"
 ```
+
+Hàm nhận cả chuỗi có dấu phân cách (`,` hoặc `.`), không phải số thì trả lại nguyên chuỗi. Đọc đúng chuẩn tiếng Việt: 15 → "mười lăm", 21 → "hai mươi mốt", 25 → "hai mươi lăm". **Đừng tự viết lại hàm này** — bản cũ trong `tao_3_bien_ban.py` từng đọc sai thành "Mười năm", "Hai mươi một".
 
 ---
 
@@ -118,110 +102,45 @@ data["tien_tt_bang_chu"] = so_thanh_chu(int(data.get("tien_tt", "0").replace("."
 Phân loại phụ tùng thành 3 nhóm:
 
 ```python
-thay_co_thu_hoi     = [p for p in phu_tung if p["phuong_an"] == "Thay thế có thu hồi"]
-thay_khong_thu_hoi  = [p for p in phu_tung if p["phuong_an"] == "Thay thế không thu hồi"]
-sua_chua            = [p for p in phu_tung if p["phuong_an"] == "Sửa chữa"]
+from pti_common import danh_sach_phu_tung, phu_tung_thu_hoi
+
+# Điền {ten_phu_tung_1}..{ten_phu_tung_14}, thiếu thì để trống
+danh_sach_phu_tung(info, phu_tung, n=14)
+
+# Riêng mẫu Vật tư thu hồi: chỉ phụ tùng "Thay thế có thu hồi"
+danh_sach_phu_tung(info, phu_tung_thu_hoi(phu_tung), prefix='ten_pt_thu_hoi', n=13)
 ```
 
-Mỗi nhóm được điền vào bảng phụ tùng tương ứng trong các file docx (xem mapping Bước 6).
+`phu_tung_thu_hoi()` lọc theo `'thu hồi' in phuong_an` **và** `'không' not in phuong_an` — nên "Thay thế không thu hồi" bị loại đúng.
 
 ---
 
-## Bước 6 — Xử lý docx (unpack XML → fix split → replace → pack)
-
-### ⚠️ Vấn đề split placeholder
-
-Word tách `{placeholder}` thành nhiều `<w:r>` run. **Bắt buộc** phải gộp trước khi replace.
+## Bước 6 — Sinh file docx
 
 ```python
-import zipfile, os, re
-from xml.etree import ElementTree as ET
+from pti_common import render, bao_cao_placeholder_con_sot
 
-def merge_split_placeholders(xml: str) -> str:
-    """Gộp các run liên tiếp trong <w:p> mà text nối lại thành {placeholder}."""
-    def process_para(para: str) -> str:
-        # QUAN TRỌNG: dùng (?=[>\s]) để KHÔNG match <w:tab>, <w:tabs>
-        t_re = re.compile(r'(<w:t(?=[>\s])[^>]*>)(.*?)(</w:t>)', re.DOTALL)
-        matches = list(t_re.finditer(para))
-        if not matches:
-            return para
-
-        texts = [m.group(2) for m in matches]
-        combined = ''.join(texts)
-        if '{' not in combined:
-            return para
-
-        # Bản đồ ký tự → index của match
-        char_map = []
-        for idx, t in enumerate(texts):
-            char_map.extend([idx] * len(t))
-
-        texts = list(texts)
-        for ph in re.compile(r'\{[^{}]+\}').finditer(combined):
-            s, e = ph.start(), ph.end() - 1
-            if s >= len(char_map) or e >= len(char_map):
-                continue
-            si, ei = char_map[s], char_map[e]
-            if si == ei:
-                continue  # không bị split
-            offset_si  = s - sum(len(texts[k]) for k in range(si))
-            offset_ei  = e - sum(len(texts[k]) for k in range(ei)) + 1
-            texts[si]  = texts[si][:offset_si] + ph.group(0)
-            texts[ei]  = texts[ei][offset_ei:]
-            for k in range(si+1, ei):
-                texts[k] = ''
-
-        # Ghi lại (duyệt ngược để không lệch offset)
-        result = para
-        for i in range(len(matches)-1, -1, -1):
-            m = matches[i]
-            open_tag = '<w:t xml:space="preserve">' if (' ' in texts[i] and 'xml:space' not in m.group(1)) else m.group(1)
-            result = result[:m.start()] + open_tag + texts[i] + m.group(3) + result[m.end():]
-        return result
-
-    out, pos = [], 0
-    for pm in re.finditer(r'<w:p[ >]', xml):
-        ps = pm.start()
-        pe_idx = xml.find('</w:p>', ps)
-        if pe_idx == -1:
-            break
-        pe = pe_idx + len('</w:p>')
-        out.append(xml[pos:ps])
-        out.append(process_para(xml[ps:pe]))
-        pos = pe
-    out.append(xml[pos:])
-    return ''.join(out)
-
-
-def apply_replacements(xml: str, data: dict) -> str:
-    for key, val in data.items():
-        xml = xml.replace('{' + key + '}', val)
-    return xml
-
-
-def fill_docx(template_path: str, output_path: str, data: dict):
-    """Unpack docx, fix split placeholder, thay thế, pack lại."""
-    XML_FILES = ('word/document.xml', 'word/header1.xml',
-                 'word/footer1.xml', 'word/footer2.xml')
-
-    with zipfile.ZipFile(template_path, 'r') as zin:
-        with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zout:
-            for item in zin.infolist():
-                data_bytes = zin.read(item.filename)
-                if item.filename in XML_FILES:
-                    xml = data_bytes.decode('utf-8')
-                    xml = merge_split_placeholders(xml)
-                    xml = apply_replacements(xml, data)
-                    data_bytes = xml.encode('utf-8')
-                zout.writestr(item, data_bytes)
-
-    # Validate XML — phát hiện lỗi sớm
-    with zipfile.ZipFile(output_path, 'r') as z:
-        ET.fromstring(z.read('word/document.xml'))
+dst = render('Bảo-lãnh.docx', 'Bao-lanh.docx', info)   # tên file trong assets/ và output/
+bao_cao_placeholder_con_sot(dst)                        # in placeholder chưa thay được
 ```
 
-> **Alias cần thiết**: template `Biên-bản-giám-định.docx` dùng `{Dien_bien_tai_nan}` (D hoa).
-> Thêm `data["Dien_bien_tai_nan"] = data.get("dien_bien_tai_nan", "")` trước khi gọi `fill_docx`.
+`render()` lo trọn gói: unpack → `merge_split_placeholders()` → `apply_replacements()`
+→ validate XML → pack lại. Chỉ đụng `word/document.xml` + `header*/footer*.xml`,
+**không** đụng `styles.xml` / `settings.xml`.
+
+### ⚠️ Vấn đề split placeholder (đã xử lý sẵn)
+
+Word tách `{placeholder}` thành nhiều `<w:r>` run, ví dụ `{ten_phu_tung_2}` →
+`{ten_phu_tung_` + `2` + `}`. `render()` đã gọi `merge_split_placeholders()` nên
+script không cần tự lo. **Đừng copy hàm này ra script mới** — trước đây nó bị nhân
+bản thành 3 biến thể lệch nhau giữa 7 script.
+
+Nếu buộc phải sửa hàm trong `pti_common.py`, nhớ:
+- Regex phải là `<w:t(?=[>\s])[^>]*>` — thiếu lookahead sẽ match cả `<w:tab>` → vỡ XML → Word không mở được file.
+- Không escape lại `&<>`: text lấy từ `<w:t>` đã được escape sẵn, escape lần nữa sẽ thành `&amp;amp;`.
+
+> **Alias**: `load_data()` đã tự thêm `Dien_bien_tai_nan` (template `Biên-bản-giám-định.docx`
+> dùng chữ D hoa), `ten_chu_xe`, `ten_lai_xe`, `ten_gara_sua_chua`.
 
 ---
 
@@ -234,18 +153,18 @@ def fill_docx(template_path: str, output_path: str, data: dict):
 | `Báo-cáo-sơ-bộ-giám-định.docx` | Nhóm A–F + tóm tắt phụ tùng |
 | `Bảo-lãnh.docx` | Nhóm C, D, E, G |
 | `TBTN-YCBT.docx` | Nhóm C, D, E, F, G |
-| `Xác-nhận-bồi-thường.docx` | Nhóm C, D, E, G + `tien_tt_bang_chu` |
+| `Xác-nhận-bồi-thường.docx` | Nhóm C, D, E, G + `tien_tt_chu` |
 | `CV-Ngân hàng.docx` | Nhóm C, D, E, G, H |
 | `Biên-bản-nghiệm-thu.docx` | Nhóm A, C, E + bảng phụ tùng hoàn chỉnh |
 | `Cham-dut-khoi-phuc.docx` | Nhóm A, C, D (một phần) + **nhập tay** (xem Bước 9) |
 
 ---
 
-## Bước 9 — Mẫu Chấm dứt - Khôi phục (nhập tay ưu tiên)
+## Bước 7b — Mẫu Chấm dứt - Khôi phục (nhập tay ưu tiên)
 
 **Khi nào dùng**: Người dùng gọi "mẫu chấm dứt khôi phục" hoặc cung cấp ảnh thông tin hợp đồng.
 
-**Script chuyên dụng**: `tao_cham_dut_khoi_phuc.py` (hoặc script riêng theo biển số, ví dụ `tao_cham_dut_14H04280.py`)
+**Script chuyên dụng**: `tao_cham_dut_khoi_phuc.py` — sửa khối `NHAP_TAY` ở đầu file trước khi chạy
 
 ### Logic xác định ngày khôi phục (từ Phiếu Xác minh phí)
 
@@ -272,9 +191,9 @@ Trong script: `ngay_chung_tu_doanh_thu_thuc_thu` điền **ngày chứng từ** 
 
 | Placeholder trong docx | Nguồn |
 |------------------------|-------|
-| `{bien_so_xe}` | GCN BH / Excel |
-| `{chu_xe}` | GCN BH / Excel |
-| `{so_gcn_bh}` | GCN BH / Excel |
+| `{bien_so_xe}` | GCN BH / `data.json` |
+| `{chu_xe}` | GCN BH / `data.json` |
+| `{so_gcn_bh}` | GCN BH / `data.json` |
 | `{phi_bao_hiem_da_VAT}` | `phi_bh` (đã VAT) |
 | `{gcn_bh_gio_phut}` | Giờ phút BH VCX (GCN BH) |
 | `{nam_hien_tai}` | Năm hiện tại (tự động) |
@@ -309,25 +228,24 @@ Trong script: `ngay_chung_tu_doanh_thu_thuc_thu` điền **ngày chứng từ** 
 
 ## Bước 8 — Chạy và xuất file
 
-```python
-import os
-os.makedirs("output", exist_ok=True)
+Mỗi mẫu là một script `tao_*.py` chạy độc lập (web gọi qua `POST /api/generate`):
 
-TEMPLATES = [
-    ("assets/Biên-bản-giám-định.docx",        "output/Bien-ban-giam-dinh.docx"),
-    ("assets/Vật-tư-thu-hồi.docx",             "output/Vat-tu-thu-hoi.docx"),
-    ("assets/Báo-cáo-sơ-bộ-giám-định.docx",   "output/Bao-cao-so-bo.docx"),
-    ("assets/Bảo-lãnh.docx",                   "output/Bao-lanh.docx"),
-    ("assets/TBTN-YCBT.docx",                  "output/TBTN-YCBT.docx"),
-    ("assets/Xác-nhận-bồi-thường.docx",        "output/Xac-nhan-boi-thuong.docx"),
-    ("assets/CV-Ngân hàng.docx",               "output/CV-Ngan-hang.docx"),
-    ("assets/Biên-bản-nghiệm-thu.docx",        "output/Bien-ban-nghiem-thu.docx"),
-]
+| Script | File xuất |
+|--------|-----------|
+| `tao_bien_ban_gd.py` | `Bien-ban-giam-dinh.docx` |
+| `tao_3_bien_ban.py` | `Vat-tu-thu-hoi.docx`, `Xac-nhan-boi-thuong.docx`, `Bien-ban-nghiem-thu.docx` |
+| `tao_bao_cao_so_bo.py` | `Bao-cao-so-bo.docx` |
+| `tao_bao_lanh.py` | `Bao-lanh.docx` |
+| `tao_tbtn_ycbt.py` | `TBTN-YCBT.docx` |
+| `tao_cv_ngan_hang.py` | `CV-Ngan-hang.docx` |
+| `tao_cham_dut_khoi_phuc.py` | `Cham-dut-khoi-phuc.docx` |
 
-for template, output in TEMPLATES:
-    fill_docx(template, output, data)
-    print(f"✓ {output}")
+```powershell
+python tao_bien_ban_gd.py    # chạy lẻ một mẫu để kiểm tra
 ```
+
+Cả bộ có chung cấu trúc: `load_data()` → chuẩn bị `info` → `render()`. Xem
+`tao_bao_lanh.py` (mẫu đơn giản nhất) làm khuôn khi thêm mẫu mới.
 
 ---
 
@@ -336,10 +254,8 @@ for template, output in TEMPLATES:
 1. **Dùng `python`** (không phải `python3`) trên máy Windows này
 2. **Shell là PowerShell** — KHÔNG dùng heredoc `<< 'EOF'`; viết script ra file `.py` rồi chạy `python script.py`
 3. **Không dùng `python-docx`** — thay placeholder trực tiếp trong XML để giữ nguyên định dạng gốc
-4. **Bắt buộc gọi `merge_split_placeholders()`** trước `apply_replacements()` — nếu bỏ qua, nhiều placeholder sẽ không được thay và XML có thể bị vỡ
-5. **Regex `<w:t` phải có lookahead `(?=[>\s])`** — nếu dùng `<w:t[^>]*>` sẽ match cả `<w:tab>` → vỡ XML → Word không mở được
-6. **Validate sau khi tạo**: gọi `ET.fromstring(...)` trên `word/document.xml`; nếu `ParseError` thì file không dùng được
-7. Placeholder còn sót sau khi replace → thay bằng chuỗi rỗng `""`
-8. File output lưu vào `output/` với tên ASCII (không dấu) để tránh lỗi encoding trên Windows
-9. Encoding mọi file: **UTF-8**
-10. **Phụ tùng — chỉ điền cột A** của sheet "Phụ tùng"; không ghi đè cột B (Phương án) và C (Số lượng)
+4. **Dùng lại `pti_common.py`**, đừng copy `merge_split_placeholders` / `so_thanh_chu` / `render` vào script mới — các bản nhân bản cũ đã lệch nhau và có bug
+5. `render()` đã gọi `merge_split_placeholders()` rồi validate XML bằng `ET.fromstring()` — `ParseError` sẽ dừng ngay với thông báo rõ
+6. Placeholder không có dữ liệu → `load_data()` để trống `""` (không giữ nguyên `{...}`)
+7. File output lưu vào `output/` với tên ASCII (không dấu) để tránh lỗi encoding trên Windows
+8. Encoding mọi file: **UTF-8**
