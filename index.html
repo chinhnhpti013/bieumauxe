@@ -567,15 +567,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="pb">
       <div class="clabel" style="margin-bottom:12px">Chọn mẫu biên bản cần tạo</div>
       <div class="doc-grid">
-        <div class="dc sel" data-doc="A" onclick="toggleDoc(this)">
-          <div class="dc-chk">✓</div>
+        <div class="dc" data-doc="A" onclick="toggleDoc(this)">
+          <div class="dc-chk"></div>
           <span class="dc-ico">📋</span>
           <div class="dc-code">Mẫu A</div>
           <div class="dc-name">Biên bản giám định</div>
           <span class="dc-badge badge-ok">✓ Có script</span>
         </div>
-        <div class="dc sel" data-doc="BFH" onclick="toggleDoc(this)">
-          <div class="dc-chk">✓</div>
+        <div class="dc" data-doc="BFH" onclick="toggleDoc(this)">
+          <div class="dc-chk"></div>
           <span class="dc-ico">📦</span>
           <div class="dc-code">Mẫu B + F + H</div>
           <div class="dc-name">Vật tư thu hồi · Xác nhận BT · Nghiệm thu</div>
@@ -619,7 +619,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
 
       <div class="gen-bar">
-        <div class="gen-hint">Đã chọn: <strong id="selCount">2</strong> mẫu</div>
+        <div class="gen-hint">Đã chọn: <strong id="selCount">0</strong> mẫu</div>
         <button class="btn btn-gold btn-lg" id="genBtn" onclick="generateDocs()">
           <span id="genBtnText">⚡ Tạo công văn</span>
         </button>
