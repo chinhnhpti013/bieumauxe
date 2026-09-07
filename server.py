@@ -292,6 +292,15 @@ chủ xe thường là pháp nhân (công ty) nên điền tên công ty vào ch
 def scan_images():
     """Dùng Gemini Vision API để trích xuất thông tin từ ảnh trong input/."""
     try:
+        return _scan_images_impl()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Lỗi máy chủ khi quét ảnh: {e}'}), 500
+
+
+def _scan_images_impl():
+    try:
         from google import genai as google_genai
         from google.genai import types as genai_types
     except ImportError:
