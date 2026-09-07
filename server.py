@@ -359,6 +359,7 @@ def _scan_images_impl():
 
     max_attempts = 4
     last_error = None
+    quota_exceeded_daily = False
     for attempt in range(max_attempts):
         try:
             response = client.models.generate_content(
@@ -373,7 +374,11 @@ def _scan_images_impl():
         except Exception as e:
             last_error = e
             err_str = str(e).lower()
-            # Chỉ retry khi overloaded (503) hoặc rate limit (429)
+            # Hạn ngạch theo NGÀY đã hết: retry vô ích (phải đợi sang ngày mới), dừng ngay
+            if 'perday' in err_str:
+                quota_exceeded_daily = True
+                break
+            # Chỉ retry khi overloaded (503) hoặc rate limit theo phút (429)
             if '503' in err_str or 'overload' in err_str or '429' in err_str or 'rate' in err_str:
                 if attempt < max_attempts - 1:
                     wait = 2 ** attempt  # 1s, 2s, 4s
@@ -381,6 +386,9 @@ def _scan_images_impl():
                     time.sleep(wait)
                     continue
             break
+
+    if quota_exceeded_daily:
+        return jsonify({'error': 'Đã hết hạn ngạch Gemini API miễn phí trong ngày hôm nay (giới hạn theo ngày của gói Free Tier). Vui lòng thử lại vào ngày mai, hoặc bật gói trả phí (billing) cho API key tại Google AI Studio để tăng hạn ngạch.'}), 429
     if last_error is not None:
         return jsonify({'error': f'Lỗi gọi Gemini API: {last_error}'}), 500
 
