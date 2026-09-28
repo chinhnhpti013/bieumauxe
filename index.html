@@ -368,7 +368,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <!-- Clipboard paste hint -->
       <div class="alert alert-i" id="pasteHint" style="margin-bottom:0">
         <span>📋</span>
-        <span>Có thể <strong>dán ảnh từ clipboard</strong> (Ctrl+V) vào bất kỳ vị trí nào trên trang để tải lên nhanh</span>
+        <span>Có thể <strong>dán ảnh từ clipboard</strong> (Ctrl+V) vào bất kỳ vị trí trống trên trang để tải lên nhanh. Dán <strong>text</strong> vào ô nhập liệu vẫn hoạt động bình thường.</span>
       </div>
 
       <div id="gallerySection" style="display:none">
@@ -1088,12 +1088,21 @@ async function scanImages() {
 
 // ── Clipboard paste (Ctrl+V ảnh) ──────────────────────────────────────
 document.addEventListener('paste', async (e) => {
-  const items = e.clipboardData?.items;
-  if (!items) return;
+  const cd = e.clipboardData;
+  if (!cd) return;
+
+  // Đang đứng trong ô nhập liệu và clipboard CÓ text → để trình duyệt dán text bình thường.
+  // Copy từ Word/Excel/PDF/trình duyệt thường kèm luôn một ảnh bitmap của vùng chọn;
+  // trước đây handler này thấy image/* là nuốt luôn sự kiện (preventDefault) nên ô dữ liệu
+  // không nhận được text, lại còn upload nhầm một file clipboard_*.png rác.
+  const el = e.target || document.activeElement;
+  const editable = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  const text = cd.getData('text/plain') || '';
+  if (editable && text.trim()) return;
 
   const imageFiles = [];
-  for (const item of items) {
-    if (item.type.startsWith('image/')) {
+  for (const item of cd.items) {
+    if (item.kind === 'file' && item.type.startsWith('image/')) {
       const file = item.getAsFile();
       if (file) imageFiles.push(file);
     }
@@ -1115,9 +1124,11 @@ document.addEventListener('paste', async (e) => {
   try {
     const r = await fetch(API_BASE + '/api/upload-images', {method:'POST', body:fd});
     const d = await r.json();
-    st.textContent = '✅ Đã dán ' + d.saved.length + ' ảnh từ clipboard'; st.className = 'up-status ok';
+    const n = (d.saved || []).length;
+    if (!n) throw new Error('server không lưu được ảnh');
+    st.textContent = '✅ Đã dán ' + n + ' ảnh từ clipboard'; st.className = 'up-status ok';
     loadImages();
-    toast('Đã dán ' + d.saved.length + ' ảnh từ clipboard', 'tok');
+    toast('Đã dán ' + n + ' ảnh từ clipboard', 'tok');
   } catch(err) {
     st.textContent = '❌ Lỗi khi dán ảnh'; st.className = 'up-status err';
     toast('Lỗi khi dán ảnh từ clipboard', 'terr');
@@ -1140,13 +1151,13 @@ async function resetHoSo() {
     const r = await fetch(API_BASE + '/api/reset', {method:'POST'});
     const d = await r.json();
     if (d.ok) {
-      showToast('Đã xóa hồ sơ cũ. Đang tải lại…', 'ok');
+      toast('Đã xóa hồ sơ cũ. Đang tải lại…', 'tok');
       setTimeout(() => location.reload(), 1000);
     } else {
-      showToast('Lỗi reset: ' + (d.error||'không xác định'), 'err');
+      toast('Lỗi reset: ' + (d.error||'không xác định'), 'terr');
     }
   } catch(e) {
-    showToast('Không kết nối được server', 'err');
+    toast('Không kết nối được server', 'terr');
   }
 }
 </script>
