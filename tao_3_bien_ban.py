@@ -5,11 +5,14 @@ from pti_common import (load_data, danh_sach_phu_tung, phu_tung_thu_hoi,
 
 info, phu_tung = load_data()
 
-danh_sach_phu_tung(info, phu_tung, n=14)
-
-# Vật tư thu hồi chỉ liệt kê phụ tùng phương án "Thay thế có thu hồi"
+# Chỉ mẫu "Vật tư thu hồi" dùng {sttN}/{ten_phu_tung_N}; hai mẫu còn lại không có
+# placeholder nào của bảng hạng mục nên dùng chung info là an toàn.
+# Bảng này chỉ liệt kê hạng mục phương án "Thay thế có thu hồi", nhưng STT vẫn giữ
+# số thứ tự gốc trên tab Phụ tùng ở Bước 2.
 pt_thu_hoi = phu_tung_thu_hoi(phu_tung)
-danh_sach_phu_tung(info, pt_thu_hoi, prefix='ten_pt_thu_hoi', n=13)
+danh_sach_phu_tung(info, pt_thu_hoi, n=14, stt=True)
+if len(pt_thu_hoi) > 14:
+    print(f'  ⚠ Có {len(pt_thu_hoi)} vật tư thu hồi nhưng mẫu chỉ in được 14 dòng đầu.')
 
 info['tien_tt_chu'] = so_thanh_chu(info.get('tien_tt', '0'))
 

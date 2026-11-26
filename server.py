@@ -105,6 +105,29 @@ def list_input_images():
     return jsonify({'images': images})
 
 
+@app.route('/api/delete-image', methods=['POST'])
+def delete_image():
+    """Xoá một file ảnh/PDF trong input/ (nút X trên thumbnail)."""
+    data = request.json or {}
+    name = secure_filename(data.get('name', ''))
+    if not name:
+        return jsonify({'error': 'Thiếu tên file'}), 400
+    if not allowed(name, ALLOWED_IMAGE | ALLOWED_PDF):
+        return jsonify({'error': 'Chỉ được xoá file ảnh hoặc PDF'}), 400
+
+    path = os.path.join(INPUT_DIR, name)
+    # Chặn path traversal: file phải nằm trực tiếp trong input/
+    if os.path.dirname(os.path.abspath(path)) != os.path.abspath(INPUT_DIR):
+        return jsonify({'error': 'Đường dẫn không hợp lệ'}), 400
+    if not os.path.exists(path):
+        return jsonify({'error': 'File không tồn tại'}), 404
+    try:
+        os.remove(path)
+        return jsonify({'ok': True, 'deleted': name})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/save-data', methods=['POST'])
 def save_data():
     """Ghi dữ liệu form xuống input/data.json cho các script tao_*.py đọc."""
@@ -115,6 +138,7 @@ def save_data():
         'phu_tung': [
             {
                 'ten': pt.get('ten', ''),
+                'muc_do': pt.get('muc_do', ''),
                 'phuong_an': pt.get('phuong_an', 'Thay thế có thu hồi'),
                 'sl': int(pt.get('sl') or 1),
             }
@@ -256,11 +280,14 @@ SCAN_PROMPT = """Đây là các ảnh tài liệu xe cơ giới Việt Nam (gi�
   "nguyen_nhan_tai_nan": "",
   "tien_tt": "",
   "ten_gara": "",
+  "dia_chi_gara": "",
+  "ngay_bao_gia": "",
+  "ngay_nghiem_thu": "",
   "so_tk": "",
   "ten_ngan_hang": "",
   "dia_chi_ngan_hang": "",
   "phu_tung": [
-    {"ten": "Tên phụ tùng hoặc hạng mục sửa chữa", "phuong_an": "Thay thế có thu hồi|Thay thế không thu hồi|Sửa chữa", "sl": 1}
+    {"ten": "Tên phụ tùng hoặc hạng mục sửa chữa", "muc_do": "Mức độ hư hỏng", "phuong_an": "Thay thế có thu hồi|Thay thế không thu hồi|Sửa chữa", "sl": 1}
   ]
 }
 
@@ -271,6 +298,10 @@ Lưu ý quan trọng:
 - Số tiền để nguyên số không có dấu phẩy (vd: 500000000)
 - Nếu cùng một thông tin xuất hiện trên nhiều ảnh, ưu tiên ảnh màn hình hệ thống PTI
 - Trường "phu_tung": trích xuất từ bảng báo giá / danh sách phụ tùng nếu có; "phuong_an" chỉ nhận 3 giá trị: "Thay thế có thu hồi", "Thay thế không thu hồi", hoặc "Sửa chữa"; nếu không tìm thấy danh sách phụ tùng thì để mảng rỗng []
+- "muc_do" của mỗi phụ tùng: mức độ hư hỏng ghi trên báo giá / màn hình 3 (vd "Móp bẹp", "Nứt vỡ", "Xước sơn", "Biến dạng"). Không ghi rõ thì để "" — KHÔNG tự suy đoán mức độ
+- "dia_chi_gara": địa chỉ gara sửa chữa, lấy từ báo giá của gara hoặc màn hình PTI
+- "ngay_bao_gia": ngày lập báo giá sửa chữa (ghi trên tờ báo giá của gara)
+- "ngay_nghiem_thu": ngày nghiệm thu bàn giao xe — thường KHÔNG có trên tài liệu, để trống "" cho người dùng tự nhập
 
 BA MÀN HÌNH CHỤP TỪ TRANG btxcg.pti.com.vn (nguồn dữ liệu chính, ưu tiên cao nhất):
 
@@ -310,6 +341,28 @@ THÔNG TIN NGÂN HÀNG (của gara, dùng cho Công văn Ngân hàng):
   - Dãy số tài khoản đi kèm → "so_tk"
   Nếu không có dòng nào chứa "Ngân hàng"/"NH"/"Bank" thì để trống cả ba trường.
 
+TUYỆT ĐỐI KHÔNG SUY LUẬN — hai nhóm sau chỉ được điền khi ĐỌC ĐƯỢC TRỰC TIẾP đúng nguồn:
+
+[1] "so_may" (Số máy):
+  - CHỈ lấy khi trên tài liệu có đúng nhãn "Số máy" (hoặc "SỐ MÁY" / "Số máy/Engine No")
+    đứng NGAY TRƯỚC dãy ký tự cần lấy.
+  - Nguồn hợp lệ duy nhất: Giấy đăng ký xe, Giấy chứng nhận kiểm định (đăng kiểm),
+    hoặc Phiếu xác minh phí.
+  - KHÔNG được lấy từ số khung/VIN, số seri, số phiếu, mã hồ sơ hay bất kỳ dãy ký tự
+    nào khác; KHÔNG được ghép, đoán hay sửa ký tự (vd nhầm O/0, I/1, B/8).
+  - Không nhìn thấy nhãn "Số máy" ở các nguồn trên → để trống "".
+
+[2] Nhóm HỢP ĐỒNG BẢO HIỂM: "so_hop_dong", "so_gcn_bh", "gcn_bh_tu_ngay",
+    "gcn_bh_den_ngay", "gia_tri_xe", "phi_bh", "dk_bs":
+  - CHỈ lấy từ PHIẾU XÁC MINH PHÍ (phiếu XMP / "mẫu xe cơ giới xác minh phí").
+  - Không có phiếu xác minh phí trong bộ tài liệu → để TRỐNG "" cả 7 trường.
+  - KHÔNG suy ra từ màn hình PTI, báo giá, giấy đăng ký xe hay bất kỳ tài liệu nào khác;
+    KHÔNG tự chế số GCN/số hợp đồng từ các dãy ký tự trông giống; KHÔNG tự tính
+    ngày đến hạn bằng cách cộng 1 năm vào ngày bắt đầu.
+
+Nguyên tắc chung cho mọi trường: thà để trống còn hơn điền sai. Chỉ điền khi nhìn thấy
+giá trị đó trên tài liệu, đúng nhãn, đúng nguồn.
+
 Hướng dẫn đọc từng loại tài liệu:
 - "Phiếu xác minh phí" (XMP / mẫu xe cơ giới PTI): chứa Số GCN BH → "so_gcn_bh"; Số hợp đồng → "so_hop_dong"; Thời hạn bảo hiểm từ/đến → "gcn_bh_tu_ngay"/"gcn_bh_den_ngay"; Phí bảo hiểm (dòng tổng phí hoặc "Phí BH") → "phi_bh"; Điều kiện bổ sung → "dk_bs"
 - "Giấy chứng nhận bảo hiểm" (GCN BH): số GCN BH ở đầu trang, thời hạn hiệu lực, phí BH, họ tên chủ xe, biển số
@@ -329,7 +382,7 @@ chủ xe thường là pháp nhân (công ty) nên điền tên công ty vào ch
 DATE_FIELDS = (
     'gplh_tu_ngay', 'gplh_den_ngay', 'gplx_tu_ngay', 'gplx_den_ngay',
     'gcn_bh_tu_ngay', 'gcn_bh_den_ngay', 'ngay_giam_dinh', 'ngay_vao_gara',
-    'ngay_tai_nan', 'ngay_hoa_don',
+    'ngay_tai_nan', 'ngay_hoa_don', 'ngay_bao_gia', 'ngay_nghiem_thu',
 )
 MONEY_FIELDS = ('gia_tri_xe', 'phi_bh', 'tien_tt', 'tong_thanh_toan_hoa_don')
 

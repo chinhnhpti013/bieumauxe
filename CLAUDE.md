@@ -63,15 +63,58 @@ Thêm field mới **chỉ cần** thêm vào `FIELDS` trong `index.html` — JSO
 | E. Hồ sơ | `{so_ho_so}`, `{ma_giam_dinh_vien}`, `{don_vi_quan_ly}`, `{ngay_giam_dinh}`, `{ngay_vao_gara}` |
 | F. Tai nạn | `{ngay_tai_nan}`, `{khoang_gio_tai_nan}`, `{dia_diem_tai_nan}`, `{dien_bien_tai_nan}`, `{nguyen_nhan_tai_nan}` |
 | G. Tài chính | `{ngay_hoa_don}`, `{thang_hoa_don}`, `{nam_hoa_don}`, `{tong_thanh_toan_hoa_don}`, `{tien_tt}` |
-| H. Gara | `{ten_gara}`, `{so_tk}`, `{ten_ngan_hang}`, `{dia_chi_ngan_hang}` |
+| H. Gara | `{ten_gara}`, `{dia_chi_gara}`, `{ngay_bao_gia}`, `{ngay_nghiem_thu}`, `{so_tk}`, `{ten_ngan_hang}`, `{dia_chi_ngan_hang}` |
 
 ### Phụ tùng (`phu_tung[]`)
 
 | Khoá | Mô tả |
 |------|-------|
 | `ten` | Tên chi tiết cần sửa/thay |
+| `muc_do` | Mức độ hư hỏng (vd "Móp bẹp", "Nứt vỡ"); trống nếu tài liệu không ghi rõ |
 | `phuong_an` | `Thay thế có thu hồi` / `Thay thế không thu hồi` / `Sửa chữa` |
 | `sl` | Số lượng, số nguyên dương |
+| `stt` | **Không nhập** — `load_data()` tự gán theo thứ tự dòng trên tab Phụ tùng ở Bước 2 |
+
+### Bảng hạng mục trong Biên bản giám định & Vật tư thu hồi
+
+`{sttN}` **luôn là số thứ tự gốc ở Bước 2**, kể cả khi danh sách đã bị lọc. Mẫu Vật tư thu hồi
+chỉ liệt kê hạng mục phương án "Thay thế **có** thu hồi", nên STT của nó thường nhảy cóc
+(vd hạng mục 1 và 4 → in ra STT `1` và `4`, không đánh lại thành `1`, `2`).
+
+Riêng mẫu **Biên bản giám định** (17 dòng, hàm `bang_bien_ban_gd()` trong `pti_common.py`):
+
+| Cột trong mẫu | Placeholder | Giá trị |
+|---------------|-------------|---------|
+| STT | `{sttN}` | số thứ tự ở Bước 2 |
+| Tên hạng mục thiệt hại | `{ten_phu_tung_N}` | `ten` |
+| Mức độ hư hỏng | `{muc_do_N}` | `muc_do` |
+| Đề xuất giải quyết → Sửa chữa | `{x_sua_chua_N}` | `x` nếu phương án **không** chứa "thay thế" |
+| Đề xuất giải quyết → Thay thế | `{x_thay_the_N}` | `x` nếu phương án chứa "thay thế" |
+| Hiện vật thu hồi → Có | `{x_thu_hoi_co_N}` | `x` nếu "thay thế **có** thu hồi" |
+| Hiện vật thu hồi → Không | `{x_thu_hoi_khong_N}` | `x` cho mọi trường hợp còn lại (phương án "Sửa chữa" **mặc định không thu hồi**) |
+
+Mẫu Vật tư thu hồi chỉ có 14 dòng, Biên bản giám định 17 dòng — vượt quá thì script in cảnh báo
+và chỉ điền phần đầu danh sách.
+
+## Ngày in trên từng mẫu
+
+`load_data()` tách `DD/MM/YYYY` thành 3 placeholder rời bằng `tach_ngay()`:
+
+| Mẫu | Chỗ in | Placeholder | Lấy từ ô |
+|-----|--------|-------------|----------|
+| Biên bản giám định | "Hôm nay, ngày … tháng … năm …" | `{ngay_bb_gd}` / `{thang_bb_gd}` / `{nam_bb_gd}` | **Ngày tai nạn** |
+| Vật tư thu hồi | đầu trang + "Hôm nay ngày …" | `{ngay_hoa_don}` / `{thang_hoa_don}` / `{nam_hoa_don}` | **Ngày nghiệm thu** |
+| Xác nhận bồi thường | đầu trang | `{ngay_hoa_don}` … | **Ngày nghiệm thu** |
+| Biên bản nghiệm thu | đầu trang + "Hôm nay, Quảng Ninh, ngày …" | `{ngay_hoa_don}` … | **Ngày nghiệm thu** |
+| Biên bản nghiệm thu | "Căn cứ vào Hợp đồng/Báo giá sửa chữa ngày …" | `{ngay_bao_gia}` / `{thang_bao_gia}` / `{nam_bao_gia}` | **Ngày báo giá** |
+
+`{dia_chi_hoa_don_nguoi_ban}` (Biên bản nghiệm thu) và `Đ/c :` ở mục 4 của Biên bản giám định
+đều lấy từ ô **Địa chỉ gara** (`dia_chi_gara`).
+
+> Mẹo khi sửa template: `word/document.xml` của một số mẫu (Vật tư thu hồi, Biên bản nghiệm thu)
+> lưu tiếng Việt dạng **Unicode NFD** (`á` = `a` + U+0301) nên không so khớp được với chuỗi
+> tiếng Việt viết trong mã nguồn (NFC). Chỉ thao tác theo placeholder ASCII và vị trí tương đối,
+> hoặc `unicodedata.normalize('NFC', xml)` trước khi tìm.
 
 ## 9 file output (thư mục `output/`)
 
@@ -220,6 +263,7 @@ Dự án có giao diện web Flask chạy trên Render. Người dùng upload �
 | `POST /api/upload-images` | Nhận ảnh (JPG/PNG) và PDF, lưu vào `input/` |
 | `GET /api/input-images` | Liệt kê file trong `input/` (ảnh + PDF) |
 | `POST /api/scan-images` | Gọi Gemini Vision trích xuất thông tin |
+| `POST /api/delete-image` | Xoá một file ảnh/PDF trong `input/` (nút × trên thumbnail) |
 | `POST /api/save-data` | Ghi dữ liệu form xuống `input/data.json` |
 | `POST /api/generate` | Chạy script `tao_*.py` → tạo file docx |
 | `GET /api/gdv-list` | Danh sách giám định viên (`GDV_DEFAULT`) |
@@ -274,6 +318,32 @@ form — không cần tải file ảnh. Màn hình 3 phải kéo thanh trượt 
   Ngày AI trả về không parse được → ô để trống + toast cảnh báo tên ô (không im lặng nuốt dữ liệu).
 - `MONEY_FIELDS` = `gia_tri_xe`, `phi_bh`, `tien_tt` dùng `class="money"`: tự chèn dấu `,`
   hàng nghìn khi gõ (`fmtMoney()`), giữ nguyên vị trí con trỏ.
+
+### Hai nhóm TUYỆT ĐỐI KHÔNG SUY LUẬN
+
+Gemini rất dễ "chế" giá trị cho hai nhóm này vì chúng trông giống các dãy ký tự khác trên
+màn hình. Prompt bắt buộc để trống nếu không đọc được đúng nguồn:
+
+| Trường | Nguồn hợp lệ DUY NHẤT | Quy tắc |
+|--------|----------------------|---------|
+| `so_may` | Giấy đăng ký xe · Giấy chứng nhận kiểm định · Phiếu XMP | Phải có nhãn **"Số máy"** đứng ngay trước dãy ký tự. Không lấy từ số khung/VIN/số seri/số phiếu; không đoán sửa ký tự nhầm (O/0, I/1, B/8). Không thấy nhãn → `""` |
+| `so_hop_dong`, `so_gcn_bh`, `gcn_bh_tu_ngay`, `gcn_bh_den_ngay`, `gia_tri_xe`, `phi_bh`, `dk_bs` | **Chỉ** Phiếu xác minh phí (XMP) | Không có phiếu XMP → để trống cả 7 trường. Không suy từ màn hình PTI / báo giá / đăng ký xe; không tự cộng 1 năm để ra ngày đến hạn |
+
+Nguyên tắc chung trong prompt: **thà để trống còn hơn điền sai**.
+
+### Bước 3 — Xem trước dữ liệu trước khi tạo công văn
+
+Panel `#dpv` ở đầu Bước 3 (`renderDataPreview()` trong `index.html`) liệt kê toàn bộ dữ liệu
+sẽ điền vào công văn, nhóm theo `PREVIEW_GROUPS` (A→G + phụ tùng):
+
+- Mỗi trường có cờ "bắt buộc"; trường bắt buộc mà trống → tô đỏ `⚠ CHƯA CÓ DỮ LIỆU`
+- Badge ở đầu panel: `✓ Dữ liệu đầy đủ` hoặc `⚠ Thiếu N mục bắt buộc`
+- `goStep(3)` tự gọi `renderDataPreview()` (hàm này gọi `collectFormToState()` trước nên luôn
+  lấy dữ liệu mới nhất từ form Bước 2)
+- `generateDocs()` render lại panel; còn thiếu mục bắt buộc thì `confirm()` hỏi trước khi chạy script
+
+Panel này xem dữ liệu **nguồn**; xem nội dung file `.docx` **sau khi tạo** vẫn dùng
+`GET /api/preview/<filename>` (mammoth → HTML).
 
 ### SCAN_PROMPT — Mapping nhãn tài liệu → JSON field
 

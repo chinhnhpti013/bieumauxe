@@ -53,13 +53,17 @@ def load_data():
     info = {k: ('' if v is None else str(v)) for k, v in data.get('info', {}).items()}
 
     phu_tung = []
-    for pt in data.get('phu_tung', []):
+    for idx, pt in enumerate(data.get('phu_tung', []), start=1):
         ten = str(pt.get('ten', '')).strip()
         if not ten:
             continue
         phu_tung.append({
+            # 'stt' = số thứ tự trên tab Phụ tùng ở Bước 2, giữ nguyên kể cả khi
+            # danh sách bị lọc (vd Vật tư thu hồi chỉ lấy hạng mục có thu hồi)
+            'stt': idx,
             'ten': ten,
             'phuong_an': str(pt.get('phuong_an', '') or ''),
+            'muc_do': str(pt.get('muc_do', '') or ''),
             'sl': pt.get('sl') or 1,
         })
 
@@ -73,14 +77,77 @@ def load_data():
     info['ten_chu_xe'] = info.get('chu_xe', '')
     info['ten_lai_xe'] = info.get('lai_xe', '')
     info['ten_gara_sua_chua'] = info.get('ten_gara', '')
+    info['dia_chi_hoa_don_nguoi_ban'] = info.get('dia_chi_gara', '')
+
+    # Tách ngày/tháng/năm cho các mẫu in rời 3 ô
+    #   {ngay_bb_gd}    Biên bản giám định      ← Ngày tai nạn
+    #   {ngay_hoa_don}  Vật tư thu hồi, Xác nhận bồi thường,
+    #                   phần đầu Biên bản nghiệm thu
+    #                                            ← Ngày nghiệm thu
+    #   {ngay_bao_gia}  dòng "Căn cứ Hợp đồng/Báo giá sửa chữa" của Nghiệm thu
+    #                                            ← Ngày báo giá
+    for prefix, nguon in (('bb_gd', 'ngay_tai_nan'),
+                          ('hoa_don', 'ngay_nghiem_thu'),
+                          ('bao_gia', 'ngay_bao_gia')):
+        ngay, thang, nam = tach_ngay(info.get(nguon, ''))
+        info['ngay_' + prefix] = ngay
+        info['thang_' + prefix] = thang
+        info['nam_' + prefix] = nam
 
     return info, phu_tung
 
 
-def danh_sach_phu_tung(info, phu_tung, prefix='ten_phu_tung', n=17):
-    """Điền {prefix}_1..{prefix}_n; thiếu thì để trống."""
+def tach_ngay(chuoi):
+    """'14/12/2028' → ('14', '12', '2028'). Không đọc được → ('', '', '')."""
+    m = re.match(r'^\s*(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\s*$', str(chuoi or ''))
+    if not m:
+        return '', '', ''
+    return '%02d' % int(m.group(1)), '%02d' % int(m.group(2)), m.group(3)
+
+
+def danh_sach_phu_tung(info, phu_tung, prefix='ten_phu_tung', n=17, stt=False):
+    """Điền {prefix}_1..{prefix}_n; thiếu thì để trống.
+
+    stt=True thì điền luôn {stt1}..{sttN} bằng số thứ tự GỐC của hạng mục trên
+    tab Phụ tùng ở Bước 2 (không đánh lại từ 1 khi danh sách đã bị lọc).
+    """
     for i in range(1, n + 1):
-        info[f'{prefix}_{i}'] = phu_tung[i - 1]['ten'] if i - 1 < len(phu_tung) else ''
+        pt = phu_tung[i - 1] if i - 1 < len(phu_tung) else None
+        info[f'{prefix}_{i}'] = pt['ten'] if pt else ''
+        if stt:
+            info[f'stt{i}'] = str(pt.get('stt', i)) if pt else ''
+
+
+def bang_bien_ban_gd(info, phu_tung, n=17):
+    """Bảng hạng mục của Biên bản giám định.
+
+    Mỗi dòng: {sttN} {ten_phu_tung_N} {muc_do_N} và 4 ô đánh dấu 'x':
+      {x_sua_chua_N} / {x_thay_the_N}            — cột "Đề xuất giải quyết"
+      {x_thu_hoi_co_N} / {x_thu_hoi_khong_N}     — cột "Hiện vật thu hồi"
+
+    Phương án "Sửa chữa" mặc định KHÔNG thu hồi.
+    """
+    for i in range(1, n + 1):
+        pt = phu_tung[i - 1] if i - 1 < len(phu_tung) else None
+        if pt is None:
+            info[f'stt{i}'] = ''
+            info[f'ten_phu_tung_{i}'] = ''
+            info[f'muc_do_{i}'] = ''
+            for col in ('x_sua_chua', 'x_thay_the', 'x_thu_hoi_co', 'x_thu_hoi_khong'):
+                info[f'{col}_{i}'] = ''
+            continue
+
+        pa = pt['phuong_an'].lower()
+        la_thay_the = 'thay thế' in pa
+        co_thu_hoi = la_thay_the and 'thu hồi' in pa and 'không' not in pa
+
+        info[f'stt{i}'] = str(pt.get('stt', i))
+        info[f'ten_phu_tung_{i}'] = pt['ten']
+        info[f'muc_do_{i}'] = pt.get('muc_do', '')
+        info[f'x_sua_chua_{i}'] = '' if la_thay_the else 'x'
+        info[f'x_thay_the_{i}'] = 'x' if la_thay_the else ''
+        info[f'x_thu_hoi_co_{i}'] = 'x' if co_thu_hoi else ''
+        info[f'x_thu_hoi_khong_{i}'] = '' if co_thu_hoi else 'x'
 
 
 def phu_tung_thu_hoi(phu_tung):

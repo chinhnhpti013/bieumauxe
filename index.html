@@ -75,6 +75,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .gthumb img{width:100%;height:100%;object-fit:cover;transition:transform .2s}
 .gthumb:hover img{transform:scale(1.06)}
 .gthumb-lbl{position:absolute;bottom:0;left:0;right:0;background:rgba(13,27,75,.72);color:#fff;font-size:10px;padding:3px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gthumb-x{position:absolute;top:4px;right:4px;z-index:2;width:22px;height:22px;border:none;border-radius:50%;background:rgba(211,47,47,.88);color:#fff;font-size:14px;line-height:22px;text-align:center;padding:0;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3);transition:background .15s,transform .15s}
+.gthumb-x:hover{background:#b71c1c;transform:scale(1.12)}
 
 /* ── FORM TABS ── */
 .ftabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:22px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
@@ -151,6 +153,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .preview-close{background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;padding:0 4px}
 .preview-close:hover{color:#333}
 .preview-iframe{flex:1;border:none;width:100%}
+/* ── XEM TRƯỚC DỮ LIỆU (Bước 3) ── */
+.dpv{border:1.5px solid var(--border2);border-radius:var(--r);background:var(--surf2);padding:0;margin-bottom:18px;overflow:hidden}
+.dpv-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;cursor:pointer;user-select:none}
+.dpv-head:hover{background:rgba(40,53,147,.04)}
+.dpv-ttl{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+.dpv-warn{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:#fdecea;color:#b71c1c}
+.dpv-ok{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:#e8f5e9;color:#1b5e20}
+.dpv-body{display:none;padding:0 16px 16px;background:#fff;border-top:1px solid var(--border)}
+.dpv.open .dpv-body{display:block}
+.dpv.open .dpv-caret{transform:rotate(90deg)}
+.dpv-caret{transition:transform .15s;color:var(--muted);font-size:12px}
+.dpv-grp{margin-top:14px}
+.dpv-grp-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--blue);margin-bottom:6px}
+.dpv-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.dpv-tbl td{padding:4px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+.dpv-tbl td.k{width:210px;color:var(--muted);font-size:12px}
+.dpv-tbl td.v{font-weight:500;word-break:break-word;white-space:pre-wrap}
+.dpv-tbl tr.miss td.v{color:#b71c1c;font-weight:600}
+.dpv-tbl tr.miss td.k{color:#b71c1c}
+@media(max-width:600px){.dpv-tbl td.k{width:120px;font-size:11px}.dpv-tbl td{padding:4px}}
 
 /* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:var(--r2);font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;border:none;transition:all .15s;line-height:1}
@@ -522,6 +544,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="clabel" style="margin-bottom:8px">Thông tin Gara</div>
         <div class="fg">
           <div class="f sp2"><label>Tên gara</label><input type="text" id="f_ten_gara"></div>
+          <div class="f sp2"><label>Địa chỉ gara</label><input type="text" id="f_dia_chi_gara"></div>
+          <div class="f"><label>Ngày báo giá</label><input type="date" id="f_ngay_bao_gia" class="dt"></div>
+          <div class="f"><label>Ngày nghiệm thu</label><input type="date" id="f_ngay_nghiem_thu" class="dt"></div>
           <div class="f"><label>Số tài khoản</label><input type="text" id="f_so_tk"></div>
           <div class="f"><label>Tên ngân hàng</label><input type="text" id="f_ten_ngan_hang"></div>
           <div class="f sp2"><label>Địa chỉ ngân hàng</label><input type="text" id="f_dia_chi_ngan_hang"></div>
@@ -536,6 +561,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
               <tr>
                 <th style="width:40px">#</th>
                 <th>Tên phụ tùng / hạng mục</th>
+                <th style="width:190px">Mức độ hư hỏng</th>
                 <th style="width:200px">Phương án</th>
                 <th style="width:70px">SL</th>
                 <th></th>
@@ -567,6 +593,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
     </div>
     <div class="pb">
+      <!-- Xem trước dữ liệu sẽ điền vào công văn -->
+      <div class="dpv open" id="dpv">
+        <div class="dpv-head" onclick="toggleDataPreview()">
+          <div class="dpv-ttl"><span class="dpv-caret">▶</span>👁 Xem trước dữ liệu sẽ điền vào công văn</div>
+          <div id="dpvBadge"></div>
+        </div>
+        <div class="dpv-body" id="dpvBody"></div>
+      </div>
+
       <div class="clabel" style="margin-bottom:12px">Chọn mẫu biên bản cần tạo</div>
       <div class="doc-grid">
         <div class="dc" data-doc="A" onclick="toggleDoc(this)">
@@ -686,15 +721,57 @@ const FIELDS = [
   'so_ho_so','ma_giam_dinh_vien','don_vi_quan_ly','ngay_giam_dinh','ngay_vao_gara',
   'ngay_tai_nan','khoang_gio_tai_nan','dia_diem_tai_nan','dien_bien_tai_nan','nguyen_nhan_tai_nan',
   'tien_tt',
-  'ten_gara','so_tk','ten_ngan_hang','dia_chi_ngan_hang',
+  'ten_gara','dia_chi_gara','ngay_bao_gia','ngay_nghiem_thu',
+  'so_tk','ten_ngan_hang','dia_chi_ngan_hang',
 ];
 
 const PA_OPTIONS = ['Thay thế có thu hồi','Thay thế không thu hồi','Sửa chữa'];
+
+// Nhóm trường dùng cho màn hình xem trước ở Bước 3 — [khoá, nhãn, bắt buộc?]
+const PREVIEW_GROUPS = [
+  ['A. Thông tin xe', [
+    ['bien_so_xe','Biển số xe',1],['hang_xe','Hãng xe',1],['dong_xe','Dòng xe',0],
+    ['phien_ban','Phiên bản',0],['nam_sx','Năm sản xuất',0],['so_loai','Số loại',0],
+    ['so_khung','Số khung',1],['so_may','Số máy',1],['trong_tai','Trọng tải',0],
+    ['so_cho_ngoi','Số chỗ ngồi',0],
+  ]],
+  ['B. Giấy tờ', [
+    ['giay_phep_luu_hanh','Đăng kiểm số',0],['gplh_tu_ngay','Đăng kiểm từ ngày',0],
+    ['gplh_den_ngay','Đăng kiểm đến ngày',0],['giay_phep_lai_xe','GPLX số',1],
+    ['hang_gplx','Hạng GPLX',0],['gplx_tu_ngay','GPLX từ ngày',0],['gplx_den_ngay','GPLX đến ngày',0],
+  ]],
+  ['C. Chủ xe / Lái xe', [
+    ['chu_xe','Họ tên chủ xe',1],['dien_thoai_chu_xe','SĐT chủ xe',0],['dia_chi_chu_xe','Địa chỉ chủ xe',1],
+    ['lai_xe','Họ tên lái xe',1],['dien_thoai_lai_xe','SĐT lái xe',0],['dia_chi_lai_xe','Địa chỉ lái xe',0],
+  ]],
+  ['D. Hợp đồng bảo hiểm (nguồn: Phiếu xác minh phí)', [
+    ['so_hop_dong','Số hợp đồng BH',1],['so_gcn_bh','Số GCN BH',1],
+    ['gcn_bh_tu_ngay','GCN BH từ ngày',1],['gcn_bh_den_ngay','GCN BH đến ngày',1],
+    ['gia_tri_xe','Giá trị xe',0],['phi_bh','Phí BH',0],['dk_bs','Điều kiện bổ sung',0],
+  ]],
+  ['E. Hồ sơ', [
+    ['so_ho_so','Số hồ sơ',1],['ma_giam_dinh_vien','Giám định viên',1],
+    ['don_vi_quan_ly','Đơn vị quản lý',1],['ngay_giam_dinh','Ngày giám định',1],
+    ['ngay_vao_gara','Ngày vào gara',0],
+  ]],
+  ['F. Tai nạn', [
+    ['ngay_tai_nan','Ngày tai nạn',1],['khoang_gio_tai_nan','Khoảng giờ tai nạn',1],
+    ['dia_diem_tai_nan','Địa điểm tai nạn',1],['dien_bien_tai_nan','Diễn biến tai nạn',1],
+    ['nguyen_nhan_tai_nan','Nguyên nhân tai nạn',0],
+  ]],
+  ['G. Tài chính & Gara', [
+    ['tien_tt','Tiền thanh toán',1],['ten_gara','Tên gara',1],
+    ['dia_chi_gara','Địa chỉ gara',0],['ngay_bao_gia','Ngày báo giá',1],
+    ['ngay_nghiem_thu','Ngày nghiệm thu',1],['so_tk','Số tài khoản',0],
+    ['ten_ngan_hang','Tên ngân hàng',0],['dia_chi_ngan_hang','Địa chỉ ngân hàng',0],
+  ]],
+];
 
 // Ô dùng date picker — state giữ DD/MM/YYYY, <input type=date> cần YYYY-MM-DD
 const DATE_FIELDS = new Set([
   'gplh_tu_ngay','gplh_den_ngay','gplx_tu_ngay','gplx_den_ngay',
   'gcn_bh_tu_ngay','gcn_bh_den_ngay','ngay_giam_dinh','ngay_vao_gara','ngay_tai_nan',
+  'ngay_bao_gia','ngay_nghiem_thu',
 ]);
 // Ô số tiền — hiển thị và lưu với dấu phẩy ngăn cách hàng nghìn
 const MONEY_FIELDS = new Set(['gia_tri_xe','phi_bh','tien_tt']);
@@ -787,7 +864,62 @@ function goStep(n) {
     else { el.textContent=String(i); }
   }
   S.step=n;
+  if(n===3) renderDataPreview();
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── Xem trước dữ liệu trước khi tạo công văn ───────────────────────────
+function toggleDataPreview(){ document.getElementById('dpv').classList.toggle('open'); }
+
+function renderDataPreview(){
+  collectFormToState();                       // lấy dữ liệu mới nhất từ form Bước 2
+  const body  = document.getElementById('dpvBody');
+  const badge = document.getElementById('dpvBadge');
+  if(!body) return;
+
+  let missing = 0;
+  let html = '';
+  PREVIEW_GROUPS.forEach(([title, fields]) => {
+    html += `<div class="dpv-grp"><div class="dpv-grp-t">${title}</div><table class="dpv-tbl"><tbody>`;
+    fields.forEach(([k, label, required]) => {
+      let v = String(S.info[k] || '').trim();
+      if(k === 'ma_giam_dinh_vien' && v){
+        const g = S.gdvList.find(x => x.ma === v);
+        if(g) v = g.ten + ' (' + g.ma + ')';
+      }
+      const empty = !v;
+      if(empty && required) missing++;
+      const cls = (empty && required) ? ' class="miss"' : '';
+      const shown = empty ? (required ? '⚠ CHƯA CÓ DỮ LIỆU' : '—') : esc(v);
+      html += `<tr${cls}><td class="k">${label}</td><td class="v">${shown}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+  });
+
+  // Phụ tùng
+  const pt = (S.phuTung || []).filter(p => p.ten);
+  html += `<div class="dpv-grp"><div class="dpv-grp-t">H. Phụ tùng / hạng mục (${pt.length})</div>`;
+  if(!pt.length){
+    missing++;
+    html += '<table class="dpv-tbl"><tbody><tr class="miss"><td class="k">Danh sách</td>'
+         +  '<td class="v">⚠ CHƯA CÓ HẠNG MỤC NÀO</td></tr></tbody></table>';
+  } else {
+    html += '<table class="dpv-tbl"><tbody>';
+    pt.forEach((p,i) => {
+      const md = p.muc_do ? esc(p.muc_do) + ' — ' : '';
+      html += `<tr><td class="k">${i+1}. ${esc(p.ten)}</td><td class="v">${md}${esc(p.phuong_an)} — SL: ${p.sl||1}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  html += '</div>';
+
+  html += '<div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">'
+       +  '<button class="btn btn-out" onclick="goStep(2)">✎ Quay lại sửa dữ liệu</button></div>';
+
+  body.innerHTML = html;
+  badge.innerHTML = missing
+    ? `<span class="dpv-warn">⚠ Thiếu ${missing} mục bắt buộc</span>`
+    : '<span class="dpv-ok">✓ Dữ liệu đầy đủ</span>';
 }
 
 // ── Drag & drop ────────────────────────────────────────────────────────
@@ -845,8 +977,25 @@ function renderGallery() {
       ? `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:80px;font-size:32px;color:#c0392b">📄<span style="font-size:10px;margin-top:4px;color:#666">PDF</span></div>`
       : `<img src="${url}" loading="lazy" alt="${f}">`;
     const click = isPdf ? `window.open('${url}','_blank')` : `openLb('${url}')`;
-    return `<div class="gthumb" onclick="${click}">${thumb}<div class="gthumb-lbl">${f}</div></div>`;
+    const safe = f.replace(/'/g,"\\'");
+    return `<div class="gthumb" onclick="${click}">`
+         + `<button class="gthumb-x" title="Xoá ảnh này" onclick="event.stopPropagation();deleteImage('${safe}')">×</button>`
+         + `${thumb}<div class="gthumb-lbl">${f}</div></div>`;
   }).join('');
+}
+
+// Xoá một ảnh/PDF đã tải lên (nút × trên thumbnail)
+async function deleteImage(name){
+  if(!confirm('Xoá file "'+name+'" khỏi hồ sơ?')) return;
+  try{
+    const r = await fetch(API_BASE + '/api/delete-image',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name})
+    });
+    const d = await r.json();
+    if(d.ok){ toast('Đã xoá '+name,'tok'); loadImages(); }
+    else { toast('Không xoá được: '+(d.error||''),'terr'); }
+  }catch(e){ toast('Lỗi kết nối server','terr'); }
 }
 
 // ── Lightbox ───────────────────────────────────────────────────────────
@@ -908,6 +1057,7 @@ function collectFormToState(){
     if(!ten) return;
     S.phuTung.push({
       ten,
+      muc_do: tr.querySelector('.pt-muc-do')?.value.trim() || '',
       phuong_an: tr.querySelector('.pt-pa')?.value || PA_OPTIONS[0],
       sl: parseInt(tr.querySelector('.pt-sl')?.value)||1,
     });
@@ -943,7 +1093,7 @@ function renderPtTable(){
   const tbody = document.getElementById('ptBody');
   tbody.innerHTML = '';
   if(!S.phuTung.length){
-    S.phuTung = [{ten:'',phuong_an:PA_OPTIONS[0],sl:1}];
+    S.phuTung = [{ten:'',muc_do:'',phuong_an:PA_OPTIONS[0],sl:1}];
   }
   S.phuTung.forEach((pt,i) => addPtRowData(i+1, pt));
 }
@@ -951,7 +1101,7 @@ function renderPtTable(){
 function addPtRow(){
   const tbody = document.getElementById('ptBody');
   const n = tbody.querySelectorAll('tr').length + 1;
-  addPtRowData(n, {ten:'',phuong_an:PA_OPTIONS[0],sl:1});
+  addPtRowData(n, {ten:'',muc_do:'',phuong_an:PA_OPTIONS[0],sl:1});
 }
 
 function addPtRowData(n, pt){
@@ -960,6 +1110,7 @@ function addPtRowData(n, pt){
   tr.innerHTML = `
     <td style="color:var(--muted);font-size:12px;text-align:center">${n}</td>
     <td><input type="text" class="pt-ten" value="${esc(pt.ten)}" placeholder="Tên phụ tùng / hạng mục sửa chữa"></td>
+    <td><input type="text" class="pt-muc-do" value="${esc(pt.muc_do)}" placeholder="vd: Móp bẹp, nứt vỡ"></td>
     <td><select class="pt-pa">
       ${PA_OPTIONS.map(p=>`<option${p===pt.phuong_an?' selected':''}>${p}</option>`).join('')}
     </select></td>
@@ -1027,6 +1178,15 @@ function updateSelCount(){
 async function generateDocs(){
   const docs = Array.from(document.querySelectorAll('.dc.sel')).map(c=>c.dataset.doc);
   if(!docs.length){ toast('Chọn ít nhất một mẫu','terr'); return; }
+
+  // Xem trước lại dữ liệu; còn thiếu mục bắt buộc thì hỏi trước khi tạo
+  renderDataPreview();
+  const warn = document.querySelector('#dpvBadge .dpv-warn');
+  if(warn && !confirm(warn.textContent.replace('⚠ ','') + '.\n\nVẫn tạo công văn với dữ liệu hiện tại?')){
+    document.getElementById('dpv').classList.add('open');
+    document.getElementById('dpv').scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
 
   const btn = document.getElementById('genBtn');
   const txt = document.getElementById('genBtnText');
@@ -1124,6 +1284,7 @@ async function scanImages() {
       if (Array.isArray(ptList) && ptList.length) {
         S.phuTung = ptList.map(pt => ({
           ten: pt.ten || '',
+          muc_do: pt.muc_do || '',
           phuong_an: pt.phuong_an || 'Sửa chữa',
           sl: parseInt(pt.sl) || 1,
         }));
