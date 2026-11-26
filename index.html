@@ -97,6 +97,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .f input,.f select,.f textarea{border:1.5px solid var(--border);border-radius:var(--r2);padding:8px 11px;font-family:'DM Sans',sans-serif;font-size:13.5px;color:var(--text);background:var(--surface);transition:border-color .15s,box-shadow .15s;width:100%}
 .f input:focus,.f select:focus,.f textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(40,53,147,.09)}
 .f input[readonly]{background:var(--surf2);color:var(--muted)}
+.f input.dt{font-variant-numeric:tabular-nums}
+.f input.money{text-align:right;font-variant-numeric:tabular-nums;letter-spacing:.02em}
 .f textarea{min-height:76px;resize:vertical}
 
 /* ── PHỤ TÙNG TABLE ── */
@@ -358,7 +360,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <input type="file" accept="image/*,.pdf" multiple id="imgInput" onchange="handleImageUpload(this)">
           <span class="up-ico">🖼️</span>
           <div class="up-title">Ảnh &amp; tài liệu</div>
-          <div class="up-hint">Đăng ký xe, GPLX, màn hình PTI, báo giá, phiếu XMP…<br>Hỗ trợ JPG, PNG, PDF</div>
+          <div class="up-hint">Ưu tiên <strong>Copy màn hình 1, 2, 3</strong> (màn hình 3 cần kéo thanh trượt để xuống hết các hạng mục) của trang web <strong>btxcg.pti.com.vn</strong>.<br>Nếu chưa mở hồ sơ, cần tải file các ảnh giấy tờ xe, xác minh phí và báo giá sửa chữa.<br>Hỗ trợ JPG, PNG, PDF</div>
           <div class="up-status" id="imgStatus"></div>
         </div>
       </div>
@@ -440,13 +442,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="fpanel" id="fp1">
         <div class="fg fg3">
           <div class="f"><label>Đăng kiểm số</label><input type="text" id="f_giay_phep_luu_hanh"></div>
-          <div class="f"><label>Đăng kiểm từ ngày</label><input type="text" id="f_gplh_tu_ngay" placeholder="DD/MM/YYYY"></div>
-          <div class="f"><label>Đăng kiểm đến ngày</label><input type="text" id="f_gplh_den_ngay" placeholder="DD/MM/YYYY"></div>
+          <div class="f"><label>Đăng kiểm từ ngày</label><input type="date" id="f_gplh_tu_ngay" class="dt"></div>
+          <div class="f"><label>Đăng kiểm đến ngày</label><input type="date" id="f_gplh_den_ngay" class="dt"></div>
           <div class="f"><label>GPLX số</label><input type="text" id="f_giay_phep_lai_xe"></div>
           <div class="f"><label>Hạng GPLX</label><input type="text" id="f_hang_gplx" placeholder="B2"></div>
           <div class="f"><label></label></div>
-          <div class="f"><label>GPLX từ ngày</label><input type="text" id="f_gplx_tu_ngay" placeholder="DD/MM/YYYY"></div>
-          <div class="f"><label>GPLX đến ngày</label><input type="text" id="f_gplx_den_ngay" placeholder="DD/MM/YYYY"></div>
+          <div class="f"><label>GPLX từ ngày</label><input type="date" id="f_gplx_tu_ngay" class="dt"></div>
+          <div class="f"><label>GPLX đến ngày</label><input type="date" id="f_gplx_den_ngay" class="dt"></div>
         </div>
       </div>
 
@@ -476,10 +478,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="fg">
           <div class="f"><label>Số hợp đồng BH</label><input type="text" id="f_so_hop_dong"></div>
           <div class="f"><label>Số GCN BH</label><input type="text" id="f_so_gcn_bh"></div>
-          <div class="f"><label>GCN BH từ ngày</label><input type="text" id="f_gcn_bh_tu_ngay" placeholder="DD/MM/YYYY"></div>
-          <div class="f"><label>GCN BH đến ngày</label><input type="text" id="f_gcn_bh_den_ngay" placeholder="DD/MM/YYYY"></div>
-          <div class="f"><label>Giá trị xe (đồng)</label><input type="text" id="f_gia_tri_xe" placeholder="500,000,000"></div>
-          <div class="f"><label>Phí BH (đồng)</label><input type="text" id="f_phi_bh"></div>
+          <div class="f"><label>GCN BH từ ngày</label><input type="date" id="f_gcn_bh_tu_ngay" class="dt"></div>
+          <div class="f"><label>GCN BH đến ngày</label><input type="date" id="f_gcn_bh_den_ngay" class="dt"></div>
+          <div class="f"><label>Giá trị xe (đồng)</label><input type="text" id="f_gia_tri_xe" class="money" inputmode="numeric" placeholder="500,000,000"></div>
+          <div class="f"><label>Phí BH (đồng)</label><input type="text" id="f_phi_bh" class="money" inputmode="numeric" placeholder="15,000,000"></div>
           <div class="f sp2"><label>Điều kiện bổ sung</label><input type="text" id="f_dk_bs"></div>
         </div>
       </div>
@@ -495,16 +497,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             </select>
           </div>
           <div class="f sp2"><label>Đơn vị quản lý</label><input type="text" id="f_don_vi_quan_ly" value="Phòng Giám định và Cứu hộ Quảng Ninh"></div>
-          <div class="f"><label>Ngày giám định</label><input type="text" id="f_ngay_giam_dinh" placeholder="DD/MM/YYYY"></div>
-          <div class="f"><label>Ngày vào gara</label><input type="text" id="f_ngay_vao_gara" placeholder="DD/MM/YYYY"></div>
+          <div class="f"><label>Ngày giám định</label><input type="date" id="f_ngay_giam_dinh" class="dt"></div>
+          <div class="f"><label>Ngày vào gara</label><input type="date" id="f_ngay_vao_gara" class="dt"></div>
         </div>
       </div>
 
       <!-- Tab 5: Tai nạn -->
       <div class="fpanel" id="fp5">
         <div class="fg">
-          <div class="f"><label>Ngày tai nạn</label><input type="text" id="f_ngay_tai_nan" placeholder="DD/MM/YYYY"></div>
-          <div class="f"><label>Khoảng giờ tai nạn</label><input type="text" id="f_khoang_gio_tai_nan" placeholder="Khoảng 08h00"></div>
+          <div class="f"><label>Ngày tai nạn</label><input type="date" id="f_ngay_tai_nan" class="dt"></div>
+          <div class="f"><label>Khoảng giờ tai nạn</label><input type="text" id="f_khoang_gio_tai_nan" placeholder="21 giờ 15 phút"></div>
           <div class="f sp2"><label>Địa điểm tai nạn</label><input type="text" id="f_dia_diem_tai_nan"></div>
           <div class="f sp2"><label>Diễn biến tai nạn</label><textarea id="f_dien_bien_tai_nan"></textarea></div>
           <div class="f sp2"><label>Nguyên nhân tai nạn</label><textarea id="f_nguyen_nhan_tai_nan"></textarea></div>
@@ -514,7 +516,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <!-- Tab 6: Tài chính & Gara -->
       <div class="fpanel" id="fp6">
         <div class="fg">
-          <div class="f"><label>Tiền thanh toán (đồng)</label><input type="text" id="f_tien_tt" placeholder="10,000,000"></div>
+          <div class="f"><label>Tiền thanh toán (đồng)</label><input type="text" id="f_tien_tt" class="money" inputmode="numeric" placeholder="10,000,000"></div>
         </div>
         <div class="hr"></div>
         <div class="clabel" style="margin-bottom:8px">Thông tin Gara</div>
@@ -689,6 +691,39 @@ const FIELDS = [
 
 const PA_OPTIONS = ['Thay thế có thu hồi','Thay thế không thu hồi','Sửa chữa'];
 
+// Ô dùng date picker — state giữ DD/MM/YYYY, <input type=date> cần YYYY-MM-DD
+const DATE_FIELDS = new Set([
+  'gplh_tu_ngay','gplh_den_ngay','gplx_tu_ngay','gplx_den_ngay',
+  'gcn_bh_tu_ngay','gcn_bh_den_ngay','ngay_giam_dinh','ngay_vao_gara','ngay_tai_nan',
+]);
+// Ô số tiền — hiển thị và lưu với dấu phẩy ngăn cách hàng nghìn
+const MONEY_FIELDS = new Set(['gia_tri_xe','phi_bh','tien_tt']);
+
+// "14/12/2028" | "14-12-2028" | "2028-12-14" → "2028-12-14" (ISO cho input date)
+function toISODate(v){
+  const t = String(v||'').trim();
+  if(!t) return '';
+  let m = t.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
+  if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  m = t.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return '';
+}
+// "2028-12-14" → "14/12/2028"
+function toVNDate(v){
+  const m = String(v||'').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : String(v||'').trim();
+}
+// "500000000" | "500.000.000" → "500,000,000" (giữ nguyên nếu không phải số)
+function fmtMoney(v){
+  const t = String(v==null?'':v).trim();
+  if(!t) return '';
+  const digits = t.replace(/[^0-9]/g,'');
+  if(!digits) return t;                      // không có chữ số → giữ nguyên để người dùng tự sửa
+  if(/[^0-9.,\s]/.test(t)) return t;         // lẫn chữ (vd "15 triệu") → không tự định dạng
+  return String(Number(digits)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 // ── Init ───────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   // Set date
@@ -713,6 +748,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Drag & drop setup
   setupDrop('imgZone','imgInput',handleImageUpload);
+
+  // Tự chèn dấu phẩy hàng nghìn khi gõ vào ô số tiền
+  document.querySelectorAll('.f input.money').forEach(el => {
+    el.addEventListener('input', () => {
+      const digitsBefore = el.value.slice(0, el.selectionStart||0).replace(/[^0-9]/g,'').length;
+      const formatted = fmtMoney(el.value);
+      if(formatted === el.value) return;
+      el.value = formatted;
+      // Đặt lại con trỏ sau đúng số chữ số đã gõ
+      let seen = 0, pos = formatted.length;
+      for(let i=0;i<formatted.length;i++){
+        if(/[0-9]/.test(formatted[i])) seen++;
+        if(seen === digitsBefore){ pos = i+1; break; }
+      }
+      if(digitsBefore === 0) pos = 0;
+      try{ el.setSelectionRange(pos, pos); }catch(e){}
+    });
+  });
 
   // Selected count
   updateSelCount();
@@ -803,16 +856,29 @@ function closeLb(e){ if(e.target===document.getElementById('lb')) document.getEl
 // ── Form helpers ───────────────────────────────────────────────────────
 function setField(key, val){
   const el = document.getElementById('f_'+key);
-  if(!el) return;
+  if(!el) return true;
+  if(DATE_FIELDS.has(key)){
+    const iso = toISODate(val);
+    el.value = iso;
+    // Có dữ liệu nhưng không parse được ngày → báo để người dùng nhập tay
+    return !(String(val||'').trim() && !iso);
+  }
+  if(MONEY_FIELDS.has(key)){ el.value = fmtMoney(val); return true; }
   el.value = val || '';
+  return true;
 }
 function getField(key){
   const el = document.getElementById('f_'+key);
-  return el ? el.value : '';
+  if(!el) return '';
+  if(DATE_FIELDS.has(key)) return toVNDate(el.value);
+  if(MONEY_FIELDS.has(key)) return fmtMoney(el.value);
+  return el.value;
 }
 
 function fillFormFromState(){
-  FIELDS.forEach(k => setField(k, S.info[k]||''));
+  const badDates = [];
+  FIELDS.forEach(k => { if(!setField(k, S.info[k]||'')) badDates.push(k); });
+  if(badDates.length) toast('Không đọc được ngày ở: '+badDates.join(', ')+' — vui lòng chọn lại', 'terr');
   renderPtTable();
   // GĐV: store ma, map to select
   const gdvSel = document.getElementById('f_ma_giam_dinh_vien');

@@ -272,6 +272,44 @@ Lưu ý quan trọng:
 - Nếu cùng một thông tin xuất hiện trên nhiều ảnh, ưu tiên ảnh màn hình hệ thống PTI
 - Trường "phu_tung": trích xuất từ bảng báo giá / danh sách phụ tùng nếu có; "phuong_an" chỉ nhận 3 giá trị: "Thay thế có thu hồi", "Thay thế không thu hồi", hoặc "Sửa chữa"; nếu không tìm thấy danh sách phụ tùng thì để mảng rỗng []
 
+BA MÀN HÌNH CHỤP TỪ TRANG btxcg.pti.com.vn (nguồn dữ liệu chính, ưu tiên cao nhất):
+
+[MÀN HÌNH 1] — màn hình hồ sơ tổn thất / "Tổn thất - Chi trả" (có Số hồ sơ, thông tin vụ tai nạn):
+  Số hồ sơ → "so_ho_so"; mã GĐV (dạng chữ in hoa như CHINH05, TUYENLM) → "ma_giam_dinh_vien";
+  Ngày tai nạn → "ngay_tai_nan"; Địa điểm tai nạn → "dia_diem_tai_nan";
+  Diễn biến/Mô tả tai nạn → "dien_bien_tai_nan"; Nguyên nhân → "nguyen_nhan_tai_nan";
+  Tên gara/garage sửa chữa → "ten_gara"; cột "TIỀN TT" → "tien_tt".
+  GIỜ TAI NẠN → "khoang_gio_tai_nan": giờ tai nạn thường nằm LẪN TRONG phần diễn biến/mô tả
+  và được viết bằng chữ "h", ví dụ "21h15", "8h", "khoảng 14h30". Hãy tìm mẫu đó rồi trả về
+  dạng chữ tiếng Việt: "21h15" → "21 giờ 15 phút"; "8h" → "8 giờ"; "14h30" → "14 giờ 30 phút".
+  Nếu cả màn hình 1 không có mẫu giờ nào thì để trống "".
+
+[MÀN HÌNH 2] — màn hình "Thông tin giám định" (thông tin xe, chủ xe, lái xe, giấy tờ):
+  Thông tin xe, chủ xe, lái xe, ngày giám định, ngày vào gara.
+  QUY TẮC VỊ TRÍ (rất quan trọng, đọc theo bố cục hàng ngang của form):
+  - Ô "Giấy phép lưu hành" (hoặc "GPLH"/"Đăng kiểm"): số phiếu → "giay_phep_luu_hanh".
+    HAI Ô NGAY BÊN PHẢI nó trên cùng một hàng là hai ô ngày, lần lượt từ trái sang phải:
+    ô thứ nhất → "gplh_tu_ngay", ô thứ hai → "gplh_den_ngay".
+  - Ô "Giấy phép lái xe" (hoặc "GPLX"): số GPLX → "giay_phep_lai_xe".
+    HAI Ô NGAY BÊN PHẢI nó trên cùng một hàng là hai ô ngày, lần lượt từ trái sang phải:
+    ô thứ nhất → "gplx_tu_ngay", ô thứ hai → "gplx_den_ngay".
+  Lấy đúng ô theo vị trí, KHÔNG suy đoán theo nhãn khác; nếu ô trống thì để "".
+
+[MÀN HÌNH 3] — màn hình danh sách hạng mục / duyệt giá (người dùng đã kéo thanh trượt để
+  chụp hết các hạng mục, có thể gồm nhiều ảnh nối tiếp nhau):
+  Mỗi dòng hạng mục → một phần tử của "phu_tung": tên chi tiết → "ten";
+  phương án (thay thế / sửa chữa) → "phuong_an"; số lượng → "sl".
+  Gộp tất cả các ảnh của màn hình 3 thành MỘT danh sách, bỏ các dòng trùng lặp do chụp đè nhau.
+
+THÔNG TIN NGÂN HÀNG (của gara, dùng cho Công văn Ngân hàng):
+  Tìm trong mọi tài liệu (màn hình PTI, báo giá gara, bảng kê) những dòng/ô có chữ
+  "Ngân hàng", "NGÂN HÀNG", "NH", "Bank", "STK", "Số TK", "Tài khoản":
+  - Tên ngân hàng (vd "Ngân hàng TMCP Công Thương Việt Nam - Chi nhánh Quảng Ninh",
+    "NH TMCP Ngoại Thương VN") → "ten_ngan_hang"
+  - Phần chi nhánh/địa chỉ đi kèm tên ngân hàng → "dia_chi_ngan_hang"
+  - Dãy số tài khoản đi kèm → "so_tk"
+  Nếu không có dòng nào chứa "Ngân hàng"/"NH"/"Bank" thì để trống cả ba trường.
+
 Hướng dẫn đọc từng loại tài liệu:
 - "Phiếu xác minh phí" (XMP / mẫu xe cơ giới PTI): chứa Số GCN BH → "so_gcn_bh"; Số hợp đồng → "so_hop_dong"; Thời hạn bảo hiểm từ/đến → "gcn_bh_tu_ngay"/"gcn_bh_den_ngay"; Phí bảo hiểm (dòng tổng phí hoặc "Phí BH") → "phi_bh"; Điều kiện bổ sung → "dk_bs"
 - "Giấy chứng nhận bảo hiểm" (GCN BH): số GCN BH ở đầu trang, thời hạn hiệu lực, phí BH, họ tên chủ xe, biển số
@@ -286,6 +324,79 @@ GPLX hoặc màn hình hệ thống PTI. Nếu không có nguồn nào nêu tên
 TUYỆT ĐỐI không copy "chu_xe"/"dia_chi_chu_xe" sang, kể cả khi chỉ có giấy đăng ký xe —
 chủ xe thường là pháp nhân (công ty) nên điền tên công ty vào chỗ lái xe là sai.
 """
+
+
+DATE_FIELDS = (
+    'gplh_tu_ngay', 'gplh_den_ngay', 'gplx_tu_ngay', 'gplx_den_ngay',
+    'gcn_bh_tu_ngay', 'gcn_bh_den_ngay', 'ngay_giam_dinh', 'ngay_vao_gara',
+    'ngay_tai_nan', 'ngay_hoa_don',
+)
+MONEY_FIELDS = ('gia_tri_xe', 'phi_bh', 'tien_tt', 'tong_thanh_toan_hoa_don')
+
+
+def _norm_date(v):
+    """Mọi kiểu ngày AI trả về → DD/MM/YYYY (không nhận dạng được thì giữ nguyên)."""
+    t = str(v or '').strip()
+    if not t:
+        return ''
+    m = re.match(r'^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$', t)
+    if m:
+        return '%02d/%02d/%s' % (int(m.group(3)), int(m.group(2)), m.group(1))
+    m = re.match(r'^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$', t)
+    if m:
+        return '%02d/%02d/%s' % (int(m.group(1)), int(m.group(2)), m.group(3))
+    m = re.match(r'^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2})$', t)
+    if m:
+        return '%02d/%02d/20%s' % (int(m.group(1)), int(m.group(2)), m.group(3))
+    return t
+
+
+def _norm_money(v):
+    """Số tiền → định dạng dấu phẩy hàng nghìn (có chữ xen vào thì giữ nguyên)."""
+    t = str(v or '').strip()
+    if not t:
+        return ''
+    if re.search(r'[^0-9.,\s]', t):   # lẫn chữ (vd "15 triệu") → để người dùng tự sửa
+        return t
+    digits = re.sub(r'[^0-9]', '', t)
+    if not digits:
+        return t
+    return '{:,}'.format(int(digits))
+
+
+def _norm_gio(v):
+    """Giờ tai nạn viết bằng 'h' → chữ tiếng Việt: '21h15' → '21 giờ 15 phút'."""
+    t = str(v or '').strip()
+    if not t:
+        return ''
+    prefix = 'Khoảng ' if re.search(r'kho[aả]ng', t, re.I) else ''
+    m = re.search(r'(\d{1,2})\s*(?:h|:|giờ)\s*(\d{1,2})?', t, re.I)
+    if not m:
+        return t
+    gio = int(m.group(1))
+    phut = m.group(2)
+    if gio > 23:
+        return t
+    if phut is None or int(phut) == 0:
+        return '%s%d giờ' % (prefix, gio)
+    if int(phut) > 59:
+        return t
+    return '%s%d giờ %02d phút' % (prefix, gio, int(phut))
+
+
+def _normalize_scan(info):
+    """Chuẩn hoá ngày / số tiền / giờ tai nạn trong kết quả AI trả về."""
+    if not isinstance(info, dict):
+        return info
+    for k in DATE_FIELDS:
+        if k in info:
+            info[k] = _norm_date(info[k])
+    for k in MONEY_FIELDS:
+        if k in info:
+            info[k] = _norm_money(info[k])
+    if 'khoang_gio_tai_nan' in info:
+        info['khoang_gio_tai_nan'] = _norm_gio(info['khoang_gio_tai_nan'])
+    return info
 
 
 @app.route('/api/scan-images', methods=['POST'])
@@ -414,6 +525,8 @@ def _scan_images_impl():
         info = json.loads(m.group())
     except Exception as e:
         return jsonify({'error': f'JSON không hợp lệ: {e}', 'raw': raw[:500]}), 500
+
+    info = _normalize_scan(info)
 
     return jsonify({'ok': True, 'info': info, 'files_loaded': files_loaded})
 

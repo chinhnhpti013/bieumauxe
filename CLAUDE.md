@@ -230,6 +230,51 @@ Dự án có giao diện web Flask chạy trên Render. Người dùng upload �
 1. **Có text layer** (Phiếu XMP): dùng `pdfplumber` extract text → gửi dạng text block vào prompt
 2. **Scan ảnh** (không có text): fallback dùng `pymupdf` render từng trang → gửi dạng ảnh PNG
 
+### Ba màn hình btxcg.pti.com.vn (nguồn dữ liệu chính)
+
+Người dùng Copy (Ctrl+C) trực tiếp 3 màn hình của trang `btxcg.pti.com.vn` rồi dán (Ctrl+V) vào
+form — không cần tải file ảnh. Màn hình 3 phải kéo thanh trượt để chụp hết các hạng mục
+(có thể là nhiều ảnh nối tiếp nhau).
+
+| Màn hình | Nội dung | Field trích xuất |
+|----------|----------|------------------|
+| **1** — Tổn thất / Chi trả | Vụ tai nạn, hồ sơ | `so_ho_so`, `ma_giam_dinh_vien`, `ngay_tai_nan`, `khoang_gio_tai_nan`, `dia_diem_tai_nan`, `dien_bien_tai_nan`, `nguyen_nhan_tai_nan`, `ten_gara`, `tien_tt` |
+| **2** — Thông tin giám định | Xe, chủ xe, lái xe, giấy tờ | Nhóm A/B/C + `ngay_giam_dinh`, `ngay_vao_gara` |
+| **3** — Danh sách hạng mục / duyệt giá | Bảng phụ tùng | `phu_tung[]` (gộp nhiều ảnh, bỏ dòng trùng do chụp đè) |
+
+**Quy tắc vị trí trên màn hình 2** (đọc theo bố cục hàng ngang của form, KHÔNG suy đoán theo nhãn):
+
+- Ô `Giấy phép lưu hành` → `giay_phep_luu_hanh`; **hai ô ngay bên phải** nó cùng hàng, trái → phải:
+  `gplh_tu_ngay`, `gplh_den_ngay`
+- Ô `Giấy phép lái xe` → `giay_phep_lai_xe`; **hai ô ngay bên phải** nó cùng hàng, trái → phải:
+  `gplx_tu_ngay`, `gplx_den_ngay`
+
+**Giờ tai nạn** (`khoang_gio_tai_nan`): nằm lẫn trong phần diễn biến của màn hình 1, viết bằng chữ `h`
+(vd. `21h15`, `8h`, `khoảng 14h30`). Server chuẩn hoá bằng `_norm_gio()` sang chữ tiếng Việt:
+`21h15` → `21 giờ 15 phút`, `8h` → `8 giờ`, `khoảng 14h30` → `Khoảng 14 giờ 30 phút`.
+
+**Ngân hàng** (`ten_ngan_hang`, `dia_chi_ngan_hang`, `so_tk`): chỉ lấy từ dòng/ô có chữ
+`Ngân hàng` / `NH` / `Bank` / `STK` / `Số TK` / `Tài khoản` trong bất kỳ tài liệu nào
+(màn hình PTI, báo giá gara, bảng kê). Không có dòng nào như vậy → để trống cả ba.
+
+### Chuẩn hoá kết quả scan (`server.py`)
+
+`_normalize_scan(info)` chạy trên JSON Gemini trả về, trước khi gửi xuống form:
+
+| Hàm | Áp dụng cho | Kết quả |
+|-----|-------------|---------|
+| `_norm_date()` | `DATE_FIELDS` | mọi kiểu ngày → `DD/MM/YYYY` (`2028-12-14`, `14-12-2028`, `14.12.28` đều về `14/12/2028`) |
+| `_norm_money()` | `MONEY_FIELDS` | `500000000` → `500,000,000`; lẫn chữ (`15 triệu`) thì giữ nguyên cho người dùng sửa |
+| `_norm_gio()` | `khoang_gio_tai_nan` | `21h15` → `21 giờ 15 phút` |
+
+### Form web: date picker & định dạng số tiền (`index.html`)
+
+- `DATE_FIELDS` (9 ô ngày) dùng `<input type="date">`. State và `data.json` vẫn giữ `DD/MM/YYYY`;
+  `setField()`/`getField()` tự chuyển qua lại bằng `toISODate()` / `toVNDate()`.
+  Ngày AI trả về không parse được → ô để trống + toast cảnh báo tên ô (không im lặng nuốt dữ liệu).
+- `MONEY_FIELDS` = `gia_tri_xe`, `phi_bh`, `tien_tt` dùng `class="money"`: tự chèn dấu `,`
+  hàng nghìn khi gõ (`fmtMoney()`), giữ nguyên vị trí con trỏ.
+
 ### SCAN_PROMPT — Mapping nhãn tài liệu → JSON field
 
 **Giấy phép lái xe (GPLX)**:
